@@ -1,0 +1,215 @@
+I am working on making personal finance traker. 
+
+Telegram Trigger
+
+Switch node
+Mode
+Rules
+Routing Rules
+{{ $json.message.voice.file_id }}
+ 
+
+is not empty
+Rename Output
+
+{{ $json.message.photo[0].file_id }}
+ 
+
+is not empty
+Rename Output
+
+{{ $json.message.document.file_id }}
+ 
+
+is not empty
+Rename Output
+
+{{ $json.message.text }}
+ 
+
+is not empty
+Rename Output
+
+
+
+Get Audio File
+
+Credential
+Personal Finance Tracker
+Resource
+File
+Operation
+Get
+File ID
+{{ $json.message.voice.file_id }}
+
+Download ON
+
+
+
+Open AI Transcribe Audio (Whisper)
+
+Credential
+Personal Finance Tracker
+Resource
+Audio
+Operation
+Transcribe a Recording
+OpenAI API limits the size of the audio file to 25 MB
+Input Data Field Name
+data
+
+
+
+Accounting Agent (Audio)
+
+Source for Prompt (User Message)
+Define below
+Prompt (User Message)
+{{ $json.text }}
+ 
+You are an accounting assistant.
+Extract ALL transactions and return ONLY a valid JSON array:
+[
+  {
+    "date": "YYYY-MM-DD",
+    "type": "INCOME or EXPENSE",
+    "category": "Food/Transport/Shopping/Bills/Health/Education/Other",
+    "vendor": "",
+    "platform": "Direct",
+    "product": "",
+    "amount": 0,
+    "currency": "INR",
+    "currency_symbol": "₹"
+  }
+]
+- INCOME: received, earned, salary, bonus, freelance
+- EXPENSE: spent, paid, bought, bill, fee, ordered
+- Default to EXPENSE if unclear
+- If no date use today: {{ $now.toFormat("yyyy-MM-dd") }}
+- Return ONLY JSON, no explanation
+
+
+
+Open Ai 
+
+Model
+From list
+gpt-5-mini
+Use Responses API
+
+
+
+Structured Parser (Audio)
+
+Jason Example 
+
+[
+  {
+    "date": "2024-01-15",
+    "type": "EXPENSE",
+    "category": "Food",
+    "vendor": "Subway",
+    "amount": 500,
+    "currency_symbol": "₹"
+  }
+]
+
+
+
+
+Format Audio JSON (Code node)
+
+
+Mode
+Run Once for Each Item
+Language
+JavaScript
+
+
+Code✨ Ask AI
+const raw = $input.item.json.output;
+let transactions = typeof raw === 'string' ? JSON.parse(raw) : raw;
+
+if (!Array.isArray(transactions)) {
+  transactions = [transactions];
+}
+
+return transactions.map(data => ({
+  json: {
+    date: data.date || '',
+    type: data.type ? data.type.toUpperCase() : 'EXPENSE',
+    category: data.category || '',
+    vendor: data.vendor || data.category || 'Not specified',
+    platform: data.platform || 'Direct',
+    product: data.product || data.category || 'Not specified',
+    amount: Number(data.amount) || 0,
+    currency: data.currency || 'INR',
+    currency_symbol: data.currency_symbol || '₹'
+  }
+}));
+
+
+
+Append to Google Sheets1
+Credential
+Google Sheets OAuth2 API_PersonalFinanceTracker
+Resource
+Sheet Within Document
+Operation
+Append Row
+Document
+From list
+Accounting AI Agent on WhatsApp
+Sheet
+From list
+Sheet1
+Mapping Column Mode
+Map Each Column Manually
+Values to Send
+Date
+{{ $json.date }}
+ 
+Type
+{{ $json.type }}
+ 
+Category
+{{ $json.category }}
+ 
+Vendor
+{{ $json.vendor }}
+ 
+Platform
+{{ $json.platform }}
+ 
+Product
+{{ $json.product }}
+ 
+Amount
+{{ $json.currency_symbol }}{{ $json.amount }}
+ 
+Options
+
+
+Confirm Telegram (Audio)
+
+Credential
+Resource
+Message
+Operation
+Send Message
+Chat ID
+{{ $('Telegram Trigger').item.json.message.chat.id }}
+ 
+1104381256
+Text
+{{ $('Format Audio JSON').item.json.type === 'EXPENSE' ? '💸 Expense Recorded!' : '💰 Income Recorded!' }}
+
+🎤 Voice Message Processed!
+📅 Date: {{ $('Format Audio JSON').item.json.date }}
+📊 Type: {{ $('Format Audio JSON').item.json.type }}
+📂 Category: {{ $('Format Audio JSON').item.json.category }}
+🏪 Vendor: {{ $('Format Audio JSON').item.json.vendor }}
+💵 Amount: {{ $('Format Audio JSON').item.json.currency_symbol }}{{ $('Format Audio JSON').item.json.amount }}
+ 
+Reply Markup

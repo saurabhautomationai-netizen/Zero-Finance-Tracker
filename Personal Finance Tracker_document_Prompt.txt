@@ -1,0 +1,235 @@
+I am working on making personal finance traker with telegram trigger
+
+Switch node
+Mode
+Rules
+Routing Rules
+{{ $json.message.voice.file_id }}
+ 
+
+is not empty
+Rename Output
+
+{{ $json.message.photo[0].file_id }}
+ 
+
+is not empty
+Rename Output
+
+{{ $json.message.document.file_id }}
+ 
+
+is not empty
+Rename Output
+
+{{ $json.message.text }}
+ 
+
+is not empty
+Rename Output
+
+Convert types where required = Off
+
+Options NA
+
+
+
+Get Document File
+
+Credential
+Personal Finance Tracker
+Resource
+File
+Operation
+Get
+File ID
+{{ $json.message.document.file_id }}
+
+Download
+
+
+
+Save Document to Drive
+Credential
+Google Drive OAuth2 API-PersoanalFinanceTracekr
+Resource
+File
+Operation
+Upload
+Input Data Field Name
+data
+The name of the input field containing the binary file data to update the file
+File Name
+document_{{ $now.toFormat("yyyy-MM-dd_HHmmss") }}.pdf
+ 
+document_2026-05-02_231342.pdf
+Parent Drive
+From list
+My Drive
+Parent Folder
+From list
+Personal Finance Tracker
+Options
+No properties
+
+Google Gemini Analyze document node
+
+Credential
+Google Gemini(PaLM) Api account
+Resource
+Document
+Operation
+Analyze Document
+Model
+From list
+models/gemini-flash-latest
+Text Input
+Extract ALL transactions from this PDF invoice. Return ONLY valid JSON array, no markdown:
+[{"date":"","type":"EXPENSE or INCOME","category":"","vendor":"","platform":"","product":"","amount":0,"currency":"INR","currency_symbol":"₹"}]
+Rules:
+- vendor: seller/store name
+- platform: Amazon/Flipkart/Direct etc
+- product: main item purchased
+- amount: grand total only
+- date: from document, else use today: {{ $now.toFormat("yyyy-MM-dd") }}
+- currency: detect from document, default INR
+Input Type
+Binary File(s)
+Input Data Field Name(s)
+data
+The name of the input field containing the binary file data to be processed
+Simplify Output
+
+
+
+Code in JavaScript (Code node)
+
+Mode
+Run Once for All Items
+Language
+
+JavaScript:
+
+const item = $input.item.json;
+
+function findText(obj) {
+  if (!obj || typeof obj !== 'object') return '';
+  for (const key of Object.keys(obj)) {
+    const val = obj[key];
+    if (typeof val === 'string' && val.includes('"date"')) return val;
+    if (typeof val === 'object') {
+      const found = findText(val);
+      if (found) return found;
+    }
+  }
+  return '';
+}
+
+const raw = findText(item);
+const cleaned = raw.replace(/```json|```/g, '').trim();
+const match = cleaned.match(/\[[\s\S]*\]/);
+if (!match) return [{ json: { error: 'No JSON found', raw: cleaned } }];
+
+let transactions;
+try {
+  transactions = JSON.parse(match[0]);
+} catch(e) {
+  return [{ json: { error: 'Parse failed', raw: cleaned } }];
+}
+
+if (!Array.isArray(transactions)) {
+  transactions = [transactions];
+}
+
+return transactions.map(data => ({
+  json: {
+    date: data.date || '',
+    type: data.type ? data.type.toUpperCase() : 'EXPENSE',
+    category: data.category || '',
+    vendor: data.vendor || data.category || 'Not specified',
+    platform: data.platform || 'Direct',
+   product: (data.product || 'Not specified').replace(/^["'`t]+/, '').trim(),
+    amount: Number(data.amount) || 0,
+    currency: data.currency || 'INR',
+    currency_symbol: data.currency_symbol || '₹'
+  }
+}));
+
+
+
+
+If node
+
+Conditions
+{{ $json.error }}
+ 
+
+is empty
+Convert types where required
+
+
+
+
+Append to Google Sheets1
+
+Resource
+Sheet Within Document
+Operation
+Append Row
+Document
+From list
+Accounting AI Agent on WhatsApp
+Sheet
+From list
+Sheet1
+Mapping Column Mode
+Map Each Column Manually
+Values to Send
+Date
+{{ $json.date }}
+ 
+Type
+{{ $json.type }}
+ 
+Category
+{{ $json.category }}
+ 
+Vendor
+{{ $json.vendor }}
+ 
+Platform
+{{ $json.platform }}
+ 
+Product
+t{{ $json.product }}
+ 
+Amount
+{{ $json.currency_symbol }}{{ $json.amount }}
+
+
+
+
+Confirm Telegram (Doc)
+
+Credential
+Personal Finance Tracker
+Resource
+Message
+Operation
+Send Message
+Chat ID
+{{ $('Telegram Trigger').item.json.message.chat.id }}
+ 
+1104381256
+Text
+📄 {{ $('Code in JavaScript').all().length }} Transaction(s) Recorded from Document!
+
+{{ $('Code in JavaScript').all().map(t =>
+`${t.json.type === 'EXPENSE' ? '💸' : '💰'} ${t.json.type} | ${t.json.date} | ${t.json.category} | ${t.json.vendor} | ${t.json.currency_symbol}${t.json.amount}`
+).join('\n') }}
+ 
+Reply Markup
+None
+Additional Fields
+
+ 

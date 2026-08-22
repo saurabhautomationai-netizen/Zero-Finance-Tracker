@@ -1,0 +1,439 @@
+Schedule Trigger
+
+
+Get All Rows (Monthly)Transactions Sheet
+
+Credential
+Google Sheets OAuth2 API_PersonalFinanceTracker
+Resource
+Sheet Within Document
+Operation
+Get Row(s)
+Document
+From list
+Accounting AI Agent on WhatsApp
+Sheet
+From list
+Sheet1
+Filters
+Currently no items exist
+Combine Filters
+AND
+Options
+No properties
+
+
+
+Subscription Detection Code
+
+Mode
+Run Once for All Items
+Language
+JavaScript
+
+const rows = $input.all().map(i => i.json);
+
+function cleanAmount(v) {
+  return Number(String(v || 0).replace(/[^\d.-]/g, '')) || 0;
+}
+
+function norm(v) {
+  return String(v || '').trim().toLowerCase();
+}
+
+function addMonth(dateStr) {
+  const d = new Date(dateStr);
+  if (isNaN(d)) return '';
+  d.setMonth(d.getMonth() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+const groups = {};
+
+for (const r of rows) {
+  const type = String(r.Type || '').toUpperCase();
+  if (type !== 'EXPENSE') continue;
+
+  const vendor = r.Vendor || 'Unknown';
+  const category = r.Category || 'Other';
+  const amount = cleanAmount(r.Amount);
+  const date = String(r.Date || '').slice(0, 10);
+  const currency = r.Currency || 'INR';
+  const user_id = r.user_id || '';
+
+  if (!vendor || !amount || !date) continue;
+
+  const key = norm(vendor) + '|' + Math.round(amount);
+
+  if (!groups[key]) {
+    groups[key] = [];
+  }
+
+  groups[key].push({
+    user_id,
+    vendor,
+    category,
+    amount,
+    date,
+    currency
+  });
+}
+
+const subscriptions = [];
+
+for (const key of Object.keys(groups)) {
+  const items = groups[key].sort((a, b) => a.date.localeCompare(b.date));
+
+  if (items.length < 2) continue;
+
+  const first = items[0];
+  const last = items[items.length - 1];
+
+  const uniqueMonths = [...new Set(items.map(i => i.date.slice(0, 7)))];
+
+  if (items.length >= 2) {
+    subscriptions.push({
+      json: {
+        user_id: first.user_id,
+        Count: items.length,
+        First_Date: first.date,
+        Last_Date: last.date,
+        Vendor: first.vendor,
+        Category: first.category,
+        Frequency: 'Monthly',
+        Amount: first.amount,
+        Currency: first.currency,
+        Status: 'Active',
+        "Next Expected Date": addMonth(last.date)
+      }
+    });
+  }
+}
+
+return subscriptions.length ? subscriptions : [];
+
+
+
+Append row Subscriptions
+
+Credential
+Google Sheets OAuth2 API_PersonalFinanceTracker
+Resource
+Sheet Within Document
+Operation
+Append Row
+Document
+From list
+Accounting AI Agent on WhatsApp
+Sheet
+From list
+Subscriptions
+Mapping Column Mode
+Map Each Column Manually
+Values to Send
+user_id
+{{ $json.user_id }}
+ 
+Count
+{{ $json.Count }}
+ 
+First_Date
+{{ $json.First_Date }}
+ 
+Last_Date
+{{ $json.Last_Date }}
+ 
+Vendor
+{{ $json.Vendor }}
+ 
+Category
+{{ $json.Category }}
+ 
+Frequency
+{{ $json.Frequency }}
+ 
+Amount
+{{ $json.Amount }}
+ 
+Currency
+{{ $json.Currency }}
+ 
+Status
+{{ $json.Status }}
+ 
+Next Expected Date
+{{ $json["Next Expected Date"] }}
+ 
+Options
+No properties
+
+
+
+
+Get All Rows Transactions Sheet :
+Monthly Calculation Code node
+
+
+const rows = $input.all().map(i => i.json);
+
+function cleanAmount(v) {
+  return Number(String(v || 0).replace(/[^\d.-]/g, '')) || 0;
+}
+
+function norm(v) {
+  return String(v || '').trim().toLowerCase();
+}
+
+const month = $now.toFormat('yyyy-MM');
+const prevMonthDate = $now.minus({ months: 1 });
+const prevMonth = prevMonthDate.toFormat('yyyy-MM');
+
+let income = 0;
+let expense = 0;
+let prevExpense = 0;
+
+const categoryTotals = {};
+const vendorTotals = {};
+const vendorAmountHistory = {};
+const unusualExpenses = [];
+
+const budgets = {
+  food: 10000,
+  shopping: 8000,
+  transport: 5000,
+  utilities: 7000,
+  groceries: 8000,
+  bills: 7000,
+  entertainment: 4000,
+  health: 5000,
+  education: 5000,
+  subscription: 2000,
+  other: 3000
+};
+
+for (const r of rows) {
+  const rowMonth = String(r.Month || r.Date || '').slice(0, 7);
+  const type = String(r.Type || '').toUpperCase();
+  const amount = cleanAmount(r.Amount);
+  const category = r.Category || 'Other';
+  const vendor = r.Vendor || 'Unknown';
+
+  if (rowMonth === month && type === 'INCOME') income += amount;
+
+  if (rowMonth === month && type === 'EXPENSE') {
+    expense += amount;
+    categoryTotals[category] = (categoryTotals[category] || 0) + amount;
+    vendorTotals[vendor] = (vendorTotals[vendor] || 0) + amount;
+
+    if (amount > 5000) {
+      unusualExpenses.push(`${vendor} - ₹${amount.toLocaleString('en-IN')}`);
+    }
+  }
+
+  if (rowMonth === prevMonth && type === 'EXPENSE') {
+    prevExpense += amount;
+  }
+
+  if (type === 'EXPENSE') {
+    const key = norm(vendor);
+    if (!vendorAmountHistory[key]) vendorAmountHistory[key] = [];
+    vendorAmountHistory[key].push({
+      vendor,
+      amount,
+      month: rowMonth,
+      category
+    });
+  }
+}
+
+const savings = income - expense;
+const savingsRate = income > 0 ? Math.round((savings / income) * 100) : 0;
+
+const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0] || ['None', 0];
+const topVendor = Object.entries(vendorTotals).sort((a, b) => b[1] - a[1])[0] || ['None', 0];
+
+const budgetWarnings = Object.entries(categoryTotals)
+  .filter(([cat, amt]) => amt > (budgets[norm(cat)] || Infinity))
+  .map(([cat, amt]) => `${cat}: ₹${amt.toLocaleString('en-IN')} spent`);
+
+const subscriptions = [];
+
+for (const [key, items] of Object.entries(vendorAmountHistory)) {
+  const months = [...new Set(items.map(i => i.month))];
+  const amounts = items.map(i => i.amount);
+  const avg = amounts.reduce((a, b) => a + b, 0) / amounts.length;
+
+  const similarCount = amounts.filter(a => Math.abs(a - avg) <= avg * 0.15).length;
+
+  if (months.length >= 2 && similarCount >= 2) {
+    const latest = items[items.length - 1];
+    subscriptions.push(`${latest.vendor} - approx ₹${Math.round(avg).toLocaleString('en-IN')}/month`);
+  }
+}
+
+let healthScore = 50;
+if (savingsRate >= 30) healthScore += 25;
+else if (savingsRate >= 20) healthScore += 15;
+else if (savingsRate >= 10) healthScore += 5;
+else healthScore -= 10;
+
+if (expense <= income * 0.7) healthScore += 15;
+if (budgetWarnings.length > 0) healthScore -= 10;
+if (unusualExpenses.length > 0) healthScore -= 5;
+
+healthScore = Math.max(0, Math.min(100, healthScore));
+
+const spendingTrend = prevExpense > 0
+  ? `${expense > prevExpense ? 'Increased' : 'Decreased'} by ₹${Math.abs(expense - prevExpense).toLocaleString('en-IN')} vs last month`
+  : 'No previous month data available';
+
+const suggestion =
+  savingsRate < 20
+    ? 'Try to save at least 20% of your income next month.'
+    : 'Good savings performance. Keep tracking consistently.';
+
+const report =
+`📊 Monthly Finance Report - ${month}
+
+💰 Income: ₹${income.toLocaleString('en-IN')}
+💸 Expense: ₹${expense.toLocaleString('en-IN')}
+🏦 Savings: ₹${savings.toLocaleString('en-IN')}
+📈 Savings Rate: ${savingsRate}%
+
+🏥 Financial Health Score: ${healthScore}/100
+
+📂 Top Spending Category: ${topCategory[0]} - ₹${topCategory[1].toLocaleString('en-IN')}
+🏪 Top Vendor: ${topVendor[0]} - ₹${topVendor[1].toLocaleString('en-IN')}
+
+🔁 Subscription List:
+${subscriptions.length ? subscriptions.map(s => '• ' + s).join('\n') : 'No recurring subscriptions detected.'}
+
+⚠️ Budget Warnings:
+${budgetWarnings.length ? budgetWarnings.map(w => '• ' + w).join('\n') : 'No budget warnings.'}
+
+📊 Spending Trend:
+${spendingTrend}
+
+🚨 Unusual Expenses:
+${unusualExpenses.length ? unusualExpenses.map(e => '• ' + e).join('\n') : 'No unusual expenses detected.'}
+
+💡 Suggestion:
+${suggestion}`;
+
+return [{
+  json: {
+    Month: month,
+    Income: income,
+    Expense: expense,
+    Savings: savings,
+    "Savings Rate": savingsRate + '%',
+    "Health Score": healthScore,
+    "Top Category": topCategory[0],
+    "Top Vendor": topVendor[0],
+    Subscriptions: subscriptions.join(', ') || 'None',
+    "Budget Warnings": budgetWarnings.join(', ') || 'None',
+    "Spending Trend": spendingTrend,
+    "Unusual Expenses": unusualExpenses.join(', ') || 'None',
+    Suggestion: suggestion,
+    report
+  }
+}];
+
+
+
+
+Append Insights Sheet
+
+Credential
+Google Sheets OAuth2 API_PersonalFinanceTracker
+Resource
+Sheet Within Document
+Operation
+Append Row
+Document
+From list
+Accounting AI Agent on WhatsApp
+Sheet
+From list
+Insights
+Mapping Column Mode
+Map Each Column Manually
+Values to Send
+Month
+{{ $json.Month }}
+ 
+Income
+{{ $json.Income }}
+ 
+Expense
+{{ $json.Expense }}
+ 
+Savings
+{{ $json.Savings }}
+ 
+Savings Rate
+{{ $json["Savings Rate"] }}
+ 
+Health Score
+{{ $json["Health Score"] }}
+ 
+Top Category
+{{ $json["Top Category"] }}
+ 
+Top Vendor
+{{ $json["Top Vendor"] }}
+ 
+Suggestion
+{{ $json.Suggestion }}
+ 
+Options
+No properties
+
+
+
+Financial Insights Agent
+
+Agent
+Tools Agent
+Source for Prompt (User Message)
+Define below
+Prompt (User Message)
+{{ $("Monthly Calculation Code").first().json.report }}
+
+Options
+System Message
+You are a personal finance insights assistant.
+
+The monthly finance calculation has already been done.
+Do not recalculate.
+Do not invent numbers.
+Rewrite the given report in a clean Telegram-friendly format.
+Keep it concise and useful.
+
+
+Open Ai Chat Model
+gpt-4o-mini
+
+
+
+Send Monthly Report
+
+Credential
+Personal Finance Tracker_API
+Resource
+Message
+Operation
+Send Message
+Chat ID
+1104381256
+ 
+1104381256
+Text
+{{ $json.output || $json.report }}
+ 
+Reply Markup
+None
+Additional Fields
+Append n8n Attribution = OFF
+
+

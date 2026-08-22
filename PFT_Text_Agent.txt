@@ -1,0 +1,1059 @@
+AI Agent (Intent Classifier)
+
+Source for Prompt (User Message)
+Define below
+Prompt (User Message)
+{{ 
+  $("Telegram Trigger").first().json.message.document
+    ? 'TRANSACTION_FILE'
+    : $("Telegram Trigger").first().json.message.photo
+      ? 'TRANSACTION_FILE'
+      : $("Telegram Trigger").first().json.message.voice
+        ? 'TRANSACTION_FILE'
+        : (
+          $("Telegram Trigger").first().json.message.text ||
+          $("Telegram Trigger").first().json.message.caption ||
+          ''
+        )
+}}
+
+Require Specific Output Format = OFF
+
+Enable Fallback Model = OFF
+
+Options
+System Message:
+You are an intent classifier.
+
+Classify the user's message into ONLY ONE category.
+
+Return ONLY one word from this list:
+TRANSACTION
+QUESTION
+REPORT
+GENERAL
+CREDIT_CARD
+LOAN_EMI
+AFFORDABILITY
+FORECAST
+REMINDER
+
+Priority Rules:
+1. If message contains "credit card", "card bill", "card due", "minimum due", "total due", "statement due", "HDFC card", "ICICI card", "SBI card" → CREDIT_CARD
+2. If message contains "loan", "EMI", "home loan", "personal loan", "car loan", "bike loan", "due every month" → LOAN_EMI
+3. If user asks "can I afford", "should I buy", "can I buy", "affordable", "budget to buy" → AFFORDABILITY
+4. If user asks "future savings", "month-end balance", "spending prediction", "forecast" → FORECAST
+5. If user asks "remind me", "reminder", "alert me", "notify me" → REMINDER
+6. If user sends voice note, image, receipt, PDF, XLSX, CSV, or document file → TRANSACTION
+7. If user records normal income/expense like spent, paid, bought, received, salary, earned, bill, cashback, investment → TRANSACTION
+8. If user asks reports, summaries, dashboards, insights, financial health analysis → REPORT
+9. If user asks about spending, trends, balances, categories, budgets, or analytics → QUESTION
+10. If unrelated to finance → GENERAL
+
+Examples:
+"I spent 500 on food" → TRANSACTION
+"Salary credited" → TRANSACTION
+"HDFC credit card bill ₹5000 due on 25th" → CREDIT_CARD
+"Home loan EMI ₹18000 due on 5th every month" → LOAN_EMI
+"Can I afford iPhone worth ₹80000?" → AFFORDABILITY
+"Forecast my savings this month" → FORECAST
+"Remind me to pay electricity bill on 20th" → REMINDER
+"Generate monthly report" → REPORT
+"How much did I spend on food?" → QUESTION
+"Hello" → GENERAL
+
+IMPORTANT:
+- Return ONLY ONE WORD.
+- Do NOT explain.
+- Do NOT use punctuation.
+- Output must be EXACTLY one of the listed categories.
+
+
+
+Open AI
+
+Model: gpt-4o-mini
+
+
+
+Switch1 node
+
+Mode
+Rules
+Routing Rules
+{{ String($json.output || '').trim().toUpperCase() }}
+ 
+
+is equal to
+TRANSACTION
+ 
+Rename Output = On
+
+
+Output Name
+Transaction
+{{ String($json.output || '').trim().toUpperCase() }}
+ 
+
+is equal to
+QUESTION
+Rename Output = On
+
+
+Output Name
+Question
+{{ String($json.output || '').trim().toUpperCase() }}
+ 
+
+is equal to
+REPORT
+Rename Output = On
+
+
+Output Name
+Report
+{{ $json.output }}
+ 
+
+is equal to
+CREDIT_CARD
+Rename Output = On
+
+
+Output Name
+Credit Card
+{{ $json.output }}
+ 
+
+is equal to
+LOAN_EMI
+Rename Output = On
+
+
+Output Name
+Loan EMI
+{{ $json.output }}
+ 
+
+is equal to
+AFFORDABILITY
+Rename Output = On
+
+
+Output Name
+Affordability
+{{ $json.output }}
+ 
+
+is equal to
+FORECAST
+Rename Output = On
+
+
+Output Name
+Forecast
+{{ $json.output }}
+ 
+
+is equal to
+REMINDER
+Rename Output = On
+
+
+Output Name
+Reminder
+Convert types where required = On
+
+Options 
+
+
+
+Transactions output Switch Node
+
+Mode
+Rules
+Routing Rules
+{{ $("Telegram Trigger").first().json.message.voice?.file_id }}
+ 
+
+is not empty
+Rename Output
+
+Output Name
+Voice
+{{ $("Telegram Trigger").first().json.message.photo?.[$("Telegram Trigger").first().json.message.photo.length - 1]?.file_id }}
+ 
+
+is not empty
+Rename Output
+
+Output Name
+Image
+{{ $("Telegram Trigger").first().json.message.document?.file_id }}
+ 
+
+is not empty
+Rename Output
+
+Output Name
+Document
+{{ $("Telegram Trigger").first().json.message.text }}
+ 
+
+is not empty
+Rename Output
+
+Output Name
+Text
+Options
+Convert types where required = On
+
+
+
+Switch node Text output Accounting Agent (Text)
+
+Agent
+Conversational Agent
+Source for Prompt (User Message)
+Define below
+Prompt (User Message)
+
+CRITICAL:
+You are NOT a chatbot.
+Do NOT congratulate, advise, explain, or ask follow-up questions.
+Your ONLY job is extraction.
+Return ONLY valid JSON array.
+If the message contains income/expense information, extract it.
+
+
+Input: "received 10 lakh as freelance income"
+
+Output:
+[
+  {
+    "date": "2026-05-14",
+    "type": "INCOME",
+    "category": "Freelance",
+    "vendor": "Freelance",
+    "platform": "Direct",
+    "product": "Freelance income",
+    "amount": 1000000,
+    "currency": "INR"
+  }
+]
+
+
+
+{{
+$("Telegram Trigger").first().json.message.text ||
+$("Telegram Trigger").first().json.message.caption ||
+$("Whisper Transcription").first().json.text ||
+$("Code in JavaScript").first().json.text ||
+$("Code in JavaScript1").first().json.text ||
+'TRANSACTION_FILE'
+}}
+ 
+For more reliable structured output parsing, consider using the Tools agent
+Require Specific Output Format
+
+Options
+System Message:
+
+You are an AI-powered Personal Finance Accounting Assistant.
+
+The user may provide ONE or MULTIPLE transactions in a single message through
+text, voice, image, receipt, invoice, or document.
+
+Your job is to extract EVERY financial event in the message and return ONLY a
+valid JSON array. EACH financial event = ONE separate object. Never merge
+multiple events into one object, even if they share a date or vendor.
+
+OUTPUT RULES:
+- Return ONLY a JSON array
+- No markdown, no code fences, no explanation
+- Always return an array (even for a single transaction)
+- Ensure valid, parsable JSON
+
+OUTPUT FORMAT (multi-transaction example):
+Input: "1st May 2026 income 37500 salary, spent 350 on amazon, 700 on food,
+50 on medicine, cashback 200$. On 3 May 2026 received 500 euros and 500rs cashback."
+
+Output:
+[
+  {"date":"2026-05-01","type":"INCOME","category":"Salary","vendor":"Salary","platform":"Direct","product":"Salary","amount":37500,"currency":"INR"},
+  {"date":"2026-05-01","type":"EXPENSE","category":"Shopping","vendor":"Amazon","platform":"Amazon","product":"Shopping","amount":350,"currency":"INR"},
+  {"date":"2026-05-01","type":"EXPENSE","category":"Food","vendor":"Food","platform":"Direct","product":"Food","amount":700,"currency":"INR"},
+  {"date":"2026-05-01","type":"EXPENSE","category":"Health","vendor":"Pharmacy","platform":"Direct","product":"Medicine","amount":50,"currency":"INR"},
+  {"date":"2026-05-01","type":"INCOME","category":"Cashback","vendor":"Cashback","platform":"Direct","product":"Cashback","amount":200,"currency":"USD"},
+  {"date":"2026-05-03","type":"INCOME","category":"Other","vendor":"Other","platform":"Direct","product":"Received","amount":500,"currency":"EUR"},
+  {"date":"2026-05-03","type":"INCOME","category":"Cashback","vendor":"Cashback","platform":"Direct","product":"Cashback","amount":500,"currency":"INR"}
+]
+
+IMPORTANT RECEIPT / INVOICE RULE:
+If the image is a receipt, invoice, bill, or order summary, extract ONLY the final payable amount / grand total / total paid as ONE transaction.
+
+Do NOT create separate transactions for:
+- item subtotal
+- shipping fee
+- delivery charge
+- marketplace fee
+- tax
+- discount
+- individual line items
+
+AMAZON / E-COMMERCE RECEIPT RULE:
+For Amazon, Flipkart, Myntra, Ajio, Meesho, or similar e-commerce order summaries:
+
+- Record ONLY ONE transaction using the final Grand Total / Total Paid amount.
+- Ignore shipping fee, marketplace fee, delivery fee, taxes, discounts, and item subtotal.
+- Vendor should be the platform/company name (Amazon, Flipkart, etc.)
+- Product should be the purchased item name.
+- Platform should match the company/platform name.
+- If multiple products exist in the same order, combine them into ONE transaction using Grand Total.
+- Never create separate transactions for fees or taxes inside order summaries.
+
+For PDF/CSV/XLSX documents, do NOT return [] if there are rows, bill amounts, debit/credit values, invoice totals, order totals, or transaction-like entries.
+
+If the document contains a table or rows, analyze all rows and convert financial rows into transactions.
+
+For bank statements:
+- Debit amount = EXPENSE
+- Credit amount = INCOME
+- Narration/Description = Vendor/Product clue
+- Transaction Date = Date
+- Balance column should be ignored
+
+Use the product/item name as Product.
+Use the merchant/company as Vendor.
+Use Grand Total / Total Paid / Amount Paid as Amount.
+If Grand Total exists, always prefer Grand Total over subtotal.
+
+PARSING RULES:
+1. Split on EVERY financial event. Words like "and", "with", "also", "plus",
+   commas, or new sentences usually separate events.
+2. Each amount mentioned with a verb (spent, paid, received, got, earned,
+   credited, refund, cashback) is its own transaction.
+3. Date inheritance: when a date is mentioned, all subsequent transactions
+   use that date until a new date appears. If no date is ever mentioned,
+   use today: {{ $now.toFormat("yyyy-MM-dd") }}
+4. Currency follows the symbol next to each amount, independently per
+   transaction (one message can mix INR, USD, EUR).
+5. Do NOT collapse multiple events into one even if both INCOME and EXPENSE
+   keywords appear in the same sentence. Output one object per event.
+
+TYPE RULES (apply per-event):
+INCOME: received, earned, salary, credited, bonus, profit, freelance, got paid,
+refund, cashback, interest received, dividend
+EXPENSE: spent, paid, bought, purchased, expense, cost, bill, fee, recharged,
+ordered, ate, food, had food, emi, loan, credit card bill, rent, subscription
+If a single event is genuinely ambiguous, default to EXPENSE.
+
+CATEGORY RULES:
+INCOME: Salary, Freelance, Business, Investment, Bonus, Gift, Refund, Cashback, Other
+EXPENSE: Food, Transport, Shopping, Utilities, Groceries, Entertainment, Health,
+Education, House Rent, Bills, Credit Card, Loan EMI, Subscription, Investment, Other
+
+AUTO-CATEGORIZATION:
+- Swiggy, Zomato, McDonald's, KFC, Burger King, Starbucks, Domino's, Pizza Hut → Food
+- Uber, Rapido, Ola, Metro, Petrol, Diesel, Fuel, IRCTC, Flight, Bus → Transport
+- Amazon, Flipkart, Myntra, Ajio, Nykaa, Meesho, Croma, Reliance Digital → Shopping
+- BigBasket, Blinkit, Zepto, DMart, Reliance Smart, More → Groceries
+- Netflix, Spotify, Hotstar, Prime Video, YouTube Premium, JioCinema, SonyLIV → Subscription/Entertainment
+- Jio, Airtel, Vi, BSNL, Electricity, MSEB, Water, Gas, Internet, WiFi → Utilities/Bills
+- Hospital, Doctor, Pharmacy, Apollo, MedPlus, Tata 1mg, medicine, medical → Health
+- School, College, Course, Udemy, Coursera, Books → Education
+- HDFC, ICICI, SBI Card, Axis Card, Kotak Card, credit card bill → Credit Card
+- EMI, loan, personal loan, home loan, car loan, Bajaj Finance → Loan EMI
+- SIP, mutual fund, stocks, Zerodha, Groww, Upstox, Coin → Investment
+
+VENDOR / PLATFORM / PRODUCT:
+- Vendor: exact store/company/bank if mentioned, else use category name.
+- Platform: explicit platform if mentioned (Amazon, UPI, GPay, PhonePe, Paytm,
+  Credit Card, Bank Transfer), else "Direct".
+- Product: main item/service if mentioned, else category name.
+
+AMOUNT RULE:
+- Numeric only. Strip symbols and commas. "₹500" → 500, "Rs 1,200" → 1200,
+  "$20" → 20, "500 euros" → 500.
+
+CURRENCY RULE:
+Apply currency detection separately for EACH transaction.
+
+₹, Rs, INR, Rupees → INR
+$, USD, dollar, dollars → USD
+€, EUR, euro, euros → EUR
+£, GBP, pound, pounds → GBP
+¥, JPY, yen → JPY
+
+Never force all transactions into one currency.
+Do not inherit currency from a previous transaction unless clearly stated.
+If currency is missing, default to INR.
+
+Detect currency separately for EACH transaction.
+Never force all transactions into one currency.
+If currency is missing, default to INR.
+
+IMPORTANT CURRENCY RULE:
+If user says "rs", "rupees", "₹", or gives no currency symbol, currency MUST be INR.
+Only use USD when the user clearly mentions "$", "USD", "dollar", or "dollars".
+Never assume cashback is USD unless $/USD/dollar is explicitly mentioned.
+Example:
+"got 200 cashback" → INR
+"got 200rs cashback" → INR
+"got $200 cashback" → USD
+
+DATE RULE:
+- YYYY-MM-DD. Inherit the most recent date mentioned. If none, use today:
+  {{ $now.toFormat("yyyy-MM-dd") }}
+
+If the input is CSV/XLSX rows, treat each row as one financial transaction if it contains amount, date, description, debit, credit, expense, income, vendor, narration, or transaction details.
+
+Do not return an empty array unless there is truly no financial data.
+
+SPECIAL RULES:
+- Credit card repayment → EXPENSE, category "Credit Card"
+- Loan EMI payment → EXPENSE, category "Loan EMI"
+- SIP / mutual fund investment → EXPENSE, category "Investment"
+- Subscription payment → EXPENSE, category "Subscription"
+- Refund / cashback → INCOME, category "Refund" or "Cashback"
+- Do not invent data. Use defaults when unsure.
+
+
+
+Open AI
+Model: gpt-4o-mini
+
+
+
+Format Text JSON (Code node)
+
+JavaScript:
+
+const input = $input.first().json;
+
+let raw =
+  input.output ??
+  input.text ??
+  input.message ??
+  input.response ??
+  input;
+
+if (!raw) {
+  throw new Error('No output found from Accounting Agent');
+}
+
+// If AI already returned array/object
+if (Array.isArray(raw)) {
+  raw = JSON.stringify(raw);
+} else if (typeof raw === 'object') {
+  raw = JSON.stringify(raw);
+}
+
+raw = String(raw)
+  .replace(/```json/gi, '')
+  .replace(/```/g, '')
+  .trim();
+
+// Try to find JSON array first
+let jsonText = '';
+const arrayMatch = raw.match(/\[[\s\S]*\]/);
+
+if (arrayMatch) {
+  jsonText = arrayMatch[0];
+} else {
+  // Try JSON object fallback
+  const objectMatch = raw.match(/\{[\s\S]*\}/);
+  if (objectMatch) {
+    jsonText = `[${objectMatch[0]}]`;
+  }
+}
+
+if (!jsonText) {
+  throw new Error('No JSON found. Accounting Agent returned: ' + raw);
+}
+
+let transactions = JSON.parse(jsonText);
+
+if (!Array.isArray(transactions)) {
+  transactions = [transactions];
+}
+
+const telegram = $('Telegram Trigger').first().json.message;
+
+const validCurrencies = ['INR', 'USD', 'EUR', 'GBP', 'JPY'];
+const symbols = {
+  INR: '₹',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  JPY: '¥'
+};
+
+return transactions.map((tx) => {
+  const date = tx.date || tx.Date || $now.toFormat('yyyy-MM-dd');
+
+  let currency = String(tx.currency || tx.Currency || 'INR').toUpperCase();
+  if (!validCurrencies.includes(currency)) currency = 'INR';
+
+  const type = tx.type || tx.Type || 'EXPENSE';
+  const category = tx.category || tx.Category || 'Other';
+  const vendor = tx.vendor || tx.Vendor || category || 'Not specified';
+  const platform = tx.platform || tx.Platform || 'Direct';
+  const product = tx.product || tx.Product || category || 'Not specified';
+  const amount = tx.amount || tx.Amount || 0;
+
+  const cleanAmount = Number(String(amount).replace(/[^0-9.]/g, '')) || 0;
+
+  const duplicate_key = [
+    String(telegram.chat.id),
+    date,
+    String(type).toUpperCase(),
+    String(category).toLowerCase().trim(),
+    String(vendor).toLowerCase().trim(),
+    cleanAmount
+  ].join('|');
+
+  return {
+    json: {
+      Month: date.slice(0, 7),
+      Username: telegram.from?.username || telegram.from?.first_name || 'User',
+      user_id: String(telegram.chat.id),
+      Date: date,
+      Type: String(type).toUpperCase(),
+      Category: category,
+      Vendor: vendor,
+      Platform: platform,
+      Product: product,
+      Amount: cleanAmount,
+      Currency: currency,
+      currency_symbol: symbols[currency] || '₹',
+      duplicate_key
+    }
+  };
+});
+
+
+
+Get row(s) in sheet node
+
+Credential
+Google Sheets OAuth2 API_PersonalFinanceTracker
+Resource
+Sheet Within Document
+Operation
+Get Row(s)
+Document
+From list
+Accounting AI Agent on WhatsApp
+Sheet
+From list
+Sheet1
+Filters
+Column
+user_id
+Value
+{{$json.user_id}}
+ 
+Column
+Month
+Value
+{{$json.Month}}
+ 
+Combine Filters
+AND
+Options
+No properties
+Output Always ON
+
+
+
+Duplicate Code
+
+Mode
+Run Once for All Items
+Language
+
+JavaScript:
+
+let rows = [];
+
+try {
+  rows = $('Get row(s) in sheet1').all() || [];
+} catch (e) {
+  rows = [];
+}
+
+const current = $('Format Text JSON').all() || [];
+
+const existingKeys = rows
+  .map(r => String(r.json.duplicate_key || '').trim())
+  .filter(Boolean);
+
+return current.map(item => {
+  const key = String(item.json.duplicate_key || '').trim();
+
+  return {
+    json: {
+      ...item.json,
+      is_duplicate: key ? existingKeys.includes(key) : true
+    }
+  };
+});
+
+
+
+
+DuplicateCondition_IF
+
+Conditions
+{{ Boolean($json.is_duplicate) }}
+is equal to
+false
+
+AND
+
+{{ Boolean($json.Date && $json.Type && $json.Category && $json.Amount !== undefined && $json.Type !== 'INFO') }}
+is equal to
+true
+Options
+Convert types where required = On
+
+
+
+DuplicateCondition_IF False output Connected to: NA
+
+
+DuplicateCondition_IF True Output Connected to: Append row in sheet
+
+Credential
+Google Sheets OAuth2 API_PersonalFinanceTracker
+Resource
+Sheet Within Document
+Operation
+Append Row
+Document
+From list
+Accounting AI Agent on WhatsApp
+Sheet
+From list
+Sheet1
+Mapping Column Mode
+Map Each Column Manually
+Values to Send
+Month
+{{ $json.Month }}
+ 
+Username
+{{ $json.Username }}
+ 
+user_id
+{{ $json.user_id }}
+ 
+Date
+{{ $json.Date }}
+ 
+Type
+{{ $json.Type }}
+ 
+Category
+{{ $json.Category }}
+ 
+Vendor
+{{ $json.Vendor }}
+ 
+Platform
+{{ $json.Platform }}
+ 
+Product
+{{ $json.Product }}
+ 
+Amount
+{{ $json.Amount }}
+ 
+Currency
+{{ $json.Currency }}
+ 
+currency_symbol
+{{ $json.currency_symbol }}
+ 
+is_duplicate
+{{ $json.is_duplicate }}
+ 
+duplicate_key
+{{ $json.duplicate_key }}
+ 
+Options
+No properties
+
+
+
+Restore Transaction Data code
+
+Mode
+Run Once for All Items
+Language
+JavaScript:
+
+const items = $input.all();
+
+return items.map(item => ({
+  json: {
+    ...item.json
+  }
+}));
+
+
+
+Category Rows Code
+
+Mode
+Run Once for All Items
+Language
+JavaScript:
+
+let rows = [];
+
+try {
+  rows = $('Get row(s) in sheet1').all() || [];
+} catch (e) {
+  rows = [];
+}
+
+const current = $input.all();
+
+function cleanAmount(v) {
+  return Number(String(v || '').replace(/[^0-9.]/g, '')) || 0;
+}
+
+function cleanText(v) {
+  return String(v || '').trim().toLowerCase();
+}
+
+return current.map(function(item) {
+  const data = item.json;
+
+  const categoryRows = rows.filter(function(r) {
+    const sameCurrent =
+      String(r.json.Date || '') === String(data.Date || '') &&
+      cleanText(r.json.Category) === cleanText(data.Category) &&
+      cleanAmount(r.json.Amount) === cleanAmount(data.Amount);
+
+    return !sameCurrent &&
+      cleanText(r.json.Category) === cleanText(data.Category) &&
+      cleanText(r.json.Type) === 'expense';
+  });
+
+  const amounts = categoryRows.map(r => cleanAmount(r.json.Amount));
+
+  const avg = amounts.length > 0
+    ? amounts.reduce((a, b) => a + b, 0) / amounts.length
+    : 0;
+
+  const currentAmount = cleanAmount(data.Amount);
+  const isAnomaly =
+    cleanText(data.Type) === 'expense' &&
+    avg > 0 &&
+    currentAmount > avg * 3;
+
+  const anomalyRatio = avg > 0 ? (currentAmount / avg).toFixed(1) : 0;
+
+  return {
+    json: {
+      ...data,
+      average_category_spend: Math.round(avg),
+      is_anomaly: isAnomaly,
+      anomaly_ratio: anomalyRatio
+    }
+  };
+});
+
+
+
+
+Anomaly IF
+
+Conditions
+{{ Boolean($json.is_anomaly) }}
+ 
+
+is equal to
+true
+Convert types where required = On 
+
+Options
+No properties
+
+
+True Connected to Send text Message_anomaly
+
+Credential
+Personal Finance Tracker_API
+Resource
+Message
+Operation
+Send Message
+Chat ID
+{{ $('Telegram Trigger').first().json.message.chat.id }}
+ 
+Text
+{{
+'🚨 Unusual Transaction Detected!' +
+'\n📅 Date: ' + $json.Date +
+'\n📂 Category: ' + $json.Category +
+'\n🏪 Vendor: ' + $json.Vendor +
+'\n💰 Amount: ' + ($json.currency_symbol || '₹') + $json.Amount +
+'\n📊 Average: ' + ($json.currency_symbol || '₹') + $json.average_category_spend +
+'\n⚠️ Spike: ' + $json.anomaly_ratio + 'x higher than normal'
+}}
+ 
+Reply Markup
+None
+Additional Fields
+Append n8n Attribution
+
+then it is connected to Budget Check  Code
+
+
+False value connected to Budget Check Code
+
+Mode
+Run Once for All Items
+Language
+
+Javascript:
+
+const current = $input.all();
+let rows = [];
+
+try {
+  rows = $('Get row(s) in sheet1').all() || [];
+} catch (e) {
+  rows = [];
+}
+
+function normalizeText(v) {
+  return String(v || '').trim().toLowerCase();
+}
+
+function cleanAmount(v) {
+  return Number(String(v || '').replace(/[^\d.-]/g, '')) || 0;
+}
+
+const budgets = {
+  food: 10000,
+  shopping: 8000,
+  transport: 5000,
+  utilities: 7000,
+  groceries: 8000,
+  bills: 7000,
+  entertainment: 4000,
+  health: 5000,
+  education: 5000,
+  'house rent': 15000,
+  house_rent: 15000,
+  credit_card: 10000,
+  'credit card': 10000,
+  loan_emi: 15000,
+  'loan emi': 15000,
+  subscription: 2000,
+  investment: 10000,
+  salary: 0,
+  freelance: 0,
+  business: 0,
+  cashback: 0,
+  refund: 0,
+  other: 3000
+};
+
+return current.map(function(item) {
+  const data = item.json;
+
+  const currentCategory = normalizeText(data.Category);
+  const currentType = normalizeText(data.Type);
+  const currentAmount = cleanAmount(data.Amount);
+  const currentMonth = String(data.Month || data.Date || '').slice(0, 7);
+  const budget = budgets[currentCategory] || 0;
+
+  let previousSpend = 0;
+
+  if (currentType === 'expense') {
+    for (const row of rows) {
+      const r = row.json;
+
+      const sameCurrent =
+        String(r.Date || '') === String(data.Date || '') &&
+        normalizeText(r.Category) === currentCategory &&
+        cleanAmount(r.Amount) === currentAmount;
+
+      const rowMonth = String(r.Month || r.Date || '').slice(0, 7);
+
+      if (
+        !sameCurrent &&
+        normalizeText(r.Category) === currentCategory &&
+        normalizeText(r.Type) === 'expense' &&
+        rowMonth === currentMonth
+      ) {
+        previousSpend += cleanAmount(r.Amount);
+      }
+    }
+  }
+
+  const monthlySpend =
+    currentType === 'expense'
+      ? previousSpend + currentAmount
+      : previousSpend;
+
+  const remainingBudget = budget > 0 ? Math.max(0, budget - monthlySpend) : 0;
+  const budgetExceeded = budget > 0 && monthlySpend > budget;
+  const exceededBy = budgetExceeded ? monthlySpend - budget : 0;
+
+  let budgetStatus = 'NO_BUDGET_SET';
+
+  if (budget > 0) {
+    if (monthlySpend > budget) budgetStatus = 'EXCEEDED';
+    else if (monthlySpend >= budget * 0.8) budgetStatus = 'WARNING';
+    else budgetStatus = 'SAFE';
+  }
+
+  return {
+    json: {
+      ...data,
+      average_category_spend: data.average_category_spend || 0,
+      is_anomaly: data.is_anomaly || false,
+      anomaly_ratio: data.anomaly_ratio || 0,
+      budget,
+      monthly_category_spend: monthlySpend,
+      remaining_budget: remainingBudget,
+      budget_exceeded: budgetExceeded,
+      exceeded_by: exceededBy,
+      budget_status: budgetStatus
+    }
+  };
+});
+
+
+
+
+Budget IF condition
+
+Conditions
+{{ $json.budget_exceeded }}
+is equal to
+true
+
+Convert types where required = ON
+
+Options
+No properties
+
+
+
+True Connected to: Send Budget Alert (TelegramText)
+
+
+Chat ID:{{ $("Telegram Trigger").first().json.message.chat.id }}
+Text:
+{{ $input.all().slice(0, 5).map(function(t) {
+  return '⚠️ Budget Alert!' +
+    '\n📂 Category: ' + t.json.Category +
+    '\n💰 Budget: ' + (t.json.currency_symbol || '₹') + t.json.budget +
+    '\n📊 Spent: ' + (t.json.currency_symbol || '₹') + t.json.monthly_category_spend +
+    '\n🚨 Exceeded: ' + (t.json.currency_symbol || '₹') + t.json.exceeded_by;
+}).join('\n\n') }}
+
+Reply Markup
+
+
+
+False Output connected to: Suggestion Code
+
+Mode
+Run Once for All Items
+Language
+
+JavaScript:
+
+const allItems = $('Budget Check Code').all();
+
+return allItems.map(function(item) {
+  const data = item.json;
+  const amount = Number(String(data.Amount || 0).replace(/[^0-9.]/g, '')) || 0;
+  const category = String(data.Category || '').toLowerCase();
+  const type = String(data.Type || '').toUpperCase();
+
+  let suggestion = '✅ Smart Tip: Keep monitoring your spending habits regularly.';
+
+  if (category === 'food') {
+    suggestion = '🍽️ Food tip: Try setting a weekly food budget to avoid small frequent expenses.';
+  }
+
+  if (category === 'shopping') {
+    suggestion = '🛒 Shopping tip: Wait 24 hours before non-essential purchases.';
+  }
+
+  if (category === 'entertainment') {
+    suggestion = '🎬 Entertainment tip: Review subscriptions and cancel unused ones.';
+  }
+
+  if (category === 'utilities') {
+    suggestion = '💡 Utility tip: Track high electricity/mobile bills and compare monthly usage.';
+  }
+
+  if (category === 'transport') {
+    suggestion = '🚕 Transport tip: Compare cab, public transport, and monthly pass costs.';
+  }
+
+  if (amount > 5000 && type === 'EXPENSE') {
+    suggestion += '\n⚠️ This is a high-value expense. Check if it was planned.';
+  }
+
+  return {
+    json: {
+      ...data,
+      suggestions: suggestion
+    }
+  };
+});
+
+
+
+Suggestion IF
+
+Conditions
+{{ $json.suggestions }}
+is not empty
+
+Convert types where required = ON
+
+
+
+True cale connected to Confirm Telegram (Test)1
+
+Credential
+Personal Finance Tracker_API
+Resource
+Message
+Operation
+Send Message
+Chat ID
+1104381256
+{{ $('Telegram Trigger').first().json.message.chat.id }}
+
+Text
+{{ 
+  (!$json.Date || !$json.Type || !$json.Category || $json.Amount === undefined)
+  ? '⚠️ Invalid transaction skipped.'
+  : (
+    ($json.Type === 'EXPENSE' ? '🔴 Expense Recorded!' : '🟢 Income Recorded!') +
+    '\n📅 Date: ' + $json.Date +
+    '\n📂 Type: ' + $json.Type +
+    '\n🏷️ Category: ' + $json.Category +
+    '\n🏪 Vendor: ' + $json.Vendor +
+    '\n🛍️ Product: ' + $json.Product +
+    '\n💰 Amount: ' + ($json.currency_symbol || '₹') + $json.Amount +
+    ($json.suggestions ? '\n\n💡 ' + String($json.suggestions).split('\n')[0] : '')
+  )
+}}
+
+Reply Markup
+

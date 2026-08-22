@@ -1,0 +1,9 @@
+# Environment & Secrets
+.env
+.env.*
+*.log
+
+# Editor & MCP configuration
+.mcp.json
+.vscode/
+.idea/

@@ -1,0 +1,217 @@
+-- =========================================================
+-- Personal Finance Tracker - Supabase / PostgreSQL Migration Script
+-- Safe & Idempotent (handles both new and pre-existing tables)
+-- =========================================================
+
+-- 1. USERS TABLE
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    whatsapp_number VARCHAR(50) UNIQUE NOT NULL,
+    name VARCHAR(255),
+    default_currency VARCHAR(10) DEFAULT 'INR',
+    timezone VARCHAR(50) DEFAULT 'Asia/Kolkata',
+    status VARCHAR(50) DEFAULT 'active',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Ensure all columns exist if table was already created
+ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR(50);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS name VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS default_currency VARCHAR(10) DEFAULT 'INR';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'Asia/Kolkata';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'active';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+
+CREATE INDEX IF NOT EXISTS idx_users_whatsapp ON users(whatsapp_number);
+
+
+-- 2. TRANSACTIONS TABLE
+CREATE TABLE IF NOT EXISTS transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    whatsapp_number VARCHAR(50) NOT NULL,
+    transaction_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    type VARCHAR(20) NOT NULL DEFAULT 'expense',
+    category VARCHAR(100) DEFAULT 'Uncategorized',
+    vendor VARCHAR(255),
+    platform VARCHAR(100),
+    product VARCHAR(255),
+    amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    currency VARCHAR(10) DEFAULT 'INR',
+    currency_symbol VARCHAR(10) DEFAULT '₹',
+    source VARCHAR(50) DEFAULT 'text',
+    notes TEXT,
+    duplicate_key VARCHAR(255),
+    raw_data JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Ensure all columns exist if table was already created
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR(50);
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS transaction_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS type VARCHAR(20) DEFAULT 'expense';
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT 'Uncategorized';
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS vendor VARCHAR(255);
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS platform VARCHAR(100);
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS product VARCHAR(255);
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS amount NUMERIC(12, 2) DEFAULT 0;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'INR';
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS currency_symbol VARCHAR(10) DEFAULT '₹';
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS source VARCHAR(50) DEFAULT 'text';
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS duplicate_key VARCHAR(255);
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS raw_data JSONB;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+
+CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(whatsapp_number);
+CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type);
+CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category);
+CREATE INDEX IF NOT EXISTS idx_transactions_duplicate ON transactions(duplicate_key);
+
+
+-- 3. CREDIT CARDS TABLE
+CREATE TABLE IF NOT EXISTS credit_cards (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    whatsapp_number VARCHAR(50) NOT NULL,
+    bank VARCHAR(100) NOT NULL,
+    card_name VARCHAR(100),
+    total_due NUMERIC(12, 2) DEFAULT 0,
+    min_due NUMERIC(12, 2) DEFAULT 0,
+    due_date DATE,
+    statement_date DATE,
+    raw_data JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE credit_cards ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE credit_cards ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR(50);
+ALTER TABLE credit_cards ADD COLUMN IF NOT EXISTS bank VARCHAR(100);
+ALTER TABLE credit_cards ADD COLUMN IF NOT EXISTS card_name VARCHAR(100);
+ALTER TABLE credit_cards ADD COLUMN IF NOT EXISTS total_due NUMERIC(12, 2) DEFAULT 0;
+ALTER TABLE credit_cards ADD COLUMN IF NOT EXISTS min_due NUMERIC(12, 2) DEFAULT 0;
+ALTER TABLE credit_cards ADD COLUMN IF NOT EXISTS due_date DATE;
+ALTER TABLE credit_cards ADD COLUMN IF NOT EXISTS statement_date DATE;
+ALTER TABLE credit_cards ADD COLUMN IF NOT EXISTS raw_data JSONB;
+ALTER TABLE credit_cards ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE credit_cards ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+
+CREATE INDEX IF NOT EXISTS idx_credit_cards_user ON credit_cards(whatsapp_number);
+
+
+-- 4. LOANS & EMIS TABLE
+CREATE TABLE IF NOT EXISTS loans (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    whatsapp_number VARCHAR(50) NOT NULL,
+    loan_name VARCHAR(150) NOT NULL,
+    bank VARCHAR(100),
+    emi NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    due_date INT,
+    principal NUMERIC(14, 2),
+    interest_rate NUMERIC(5, 2),
+    tenure_months INT,
+    status VARCHAR(50) DEFAULT 'active',
+    raw_data JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR(50);
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS loan_name VARCHAR(150);
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS bank VARCHAR(100);
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS emi NUMERIC(12, 2) DEFAULT 0;
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS due_date INT;
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS principal NUMERIC(14, 2);
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS interest_rate NUMERIC(5, 2);
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS tenure_months INT;
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'active';
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS raw_data JSONB;
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+
+CREATE INDEX IF NOT EXISTS idx_loans_user ON loans(whatsapp_number);
+
+
+-- 5. SUBSCRIPTIONS TABLE
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    whatsapp_number VARCHAR(50) NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    frequency VARCHAR(50) DEFAULT 'monthly',
+    next_renewal DATE,
+    category VARCHAR(100) DEFAULT 'Subscription',
+    status VARCHAR(50) DEFAULT 'active',
+    raw_data JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR(50);
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS name VARCHAR(150);
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS amount NUMERIC(12, 2) DEFAULT 0;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS frequency VARCHAR(50) DEFAULT 'monthly';
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS next_renewal DATE;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT 'Subscription';
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'active';
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS raw_data JSONB;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscriptions(whatsapp_number);
+
+
+-- 6. REMINDERS TABLE
+CREATE TABLE IF NOT EXISTS reminders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    whatsapp_number VARCHAR(50) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    amount NUMERIC(12, 2) DEFAULT 0,
+    due_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    notes TEXT,
+    last_notified TIMESTAMP WITH TIME ZONE,
+    status VARCHAR(50) DEFAULT 'pending',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR(50);
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS title VARCHAR(255);
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS amount NUMERIC(12, 2) DEFAULT 0;
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS due_date TIMESTAMP WITH TIME ZONE;
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS last_notified TIMESTAMP WITH TIME ZONE;
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending';
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+
+CREATE INDEX IF NOT EXISTS idx_reminders_user ON reminders(whatsapp_number);
+CREATE INDEX IF NOT EXISTS idx_reminders_due ON reminders(due_date, status);
+
+
+-- 7. CONVERSATION CONTEXT TABLE
+CREATE TABLE IF NOT EXISTS conversation_context (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    whatsapp_number VARCHAR(50) UNIQUE NOT NULL,
+    context_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE conversation_context ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR(50);
+ALTER TABLE conversation_context ADD COLUMN IF NOT EXISTS context_data JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE conversation_context ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+
+CREATE INDEX IF NOT EXISTS idx_context_user ON conversation_context(whatsapp_number);

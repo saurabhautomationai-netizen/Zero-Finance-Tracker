@@ -1,0 +1,345 @@
+I am working on making personal finance traker with telegram trigger
+
+Switch node
+Mode
+Rules
+Routing Rules
+{{ $json.message.voice.file_id }}
+ 
+
+is not empty
+Rename Output
+
+{{ $json.message.photo[0].file_id }}
+ 
+
+is not empty
+Rename Output
+
+{{ $json.message.document.file_id }}
+ 
+
+is not empty
+Rename Output
+
+{{ $json.message.text }}
+ 
+
+is not empty
+Rename Output
+
+
+
+Accounting Agent (Text)
+Source for Prompt (User Message)
+Define below
+Prompt (User Message)
+{{$json.message.text}}
+ 
+Require Specific Output Format
+
+Enable Fallback Model
+
+Options
+System Message
+You are an accounting assistant.
+The user may mention ONE or MULTIPLE transactions in a single message.
+Extract ALL transactions and return them as a JSON array.
+
+PRIMARY GOAL:
+You are an accounting assistant.
+The user may mention ONE or MULTIPLE transactions in a single message.
+Extract ALL transactions and return them as a JSON array.
+
+PRIMARY GOAL:
+Correctly classify each transaction as INCOME or EXPENSE.
+
+STRICT CLASSIFICATION RULES:
+1. INCOME keywords: "received", "earned", "salary", "credited", "bonus", "income", "profit", "freelance", "got paid"
+2. EXPENSE keywords: "spent", "paid", "bought", "purchased", "expense", "cost", "bill", "fee", "recharged", "ordered", "ate", "had food", "food worth"
+3. If BOTH keywords appear in same transaction → choose INCOME
+4. Default to EXPENSE if no income keyword found
+
+EXTRACTION RULES:
+- amount MUST be a number only (e.g., 500 from "Rs500")
+- Detect currency: ₹ → INR, $ → USD, € → EUR, £ → GBP
+- If no currency symbol → default to INR
+- Extract date in format YYYY-MM-DD, if not mentioned use today's date
+- platform: Extract platform if mentioned (Amazon, Flipkart, Swiggy, Zomato, Direct)
+- product: Extract product/service if mentioned (e.g. groceries, shoes, electricity bill)
+- If not mentioned, use "Direct" for platform and category name for product
+
+CATEGORY RULES:
+INCOME categories: Salary, Freelance, Business, Investment, Bonus, Gift, Other
+EXPENSE categories: Food, Transport, Shopping, Bills, Entertainment, Health, Education, Other
+
+VENDOR RULE:
+- Extract vendor if mentioned (e.g., Subway, Amazon)
+- If not mentioned → use category name as vendor
+
+OUTPUT FORMAT (STRICT — return JSON array only, no extra text):
+[
+  {
+    "date": "",
+    "type": "INCOME or EXPENSE",
+    "category": "",
+    "vendor": "",
+    "amount": 0,
+    "currency": "INR",
+    "currency_symbol": "₹"
+  }
+]
+
+CURRENCY DETECTION (auto-detect from message):
+₹ or Rs or rs. or INR or Rupees or Rupee → currency: "INR", currency_symbol: "₹
+$ or USD → currency: "USD", currency_symbol: "$"
+€ or EUR → currency: "EUR", currency_symbol: "€"
+£ or GBP → currency: "GBP", currency_symbol: "£"
+¥ or JPY → currency: "JPY", currency_symbol: "¥"
+A$ or AUD → currency: "AUD", currency_symbol: "A$"
+C$ or CAD → currency: "CAD", currency_symbol: "C$"
+CHF → currency: "CHF", currency_symbol: "CHF"
+SGD → currency: "SGD", currency_symbol: "S$"
+If no symbol → default to INR
+ 
+
+Open AI
+Model: gpt-5-mini
+
+
+
+
+Format Text JSON (Code node)
+
+JavaScript 
+const raw = $input.first().json.output;
+let transactions = typeof raw === "string" ? JSON.parse(raw) : raw;
+
+if (!Array.isArray(transactions)) {
+  transactions = [transactions];
+}
+
+const message = $("Telegram Trigger").item.json.message.text.toLowerCase();
+
+function detectCurrency(msg) {
+  if (msg.includes("₹") || msg.includes("rs.") || msg.includes("rs ") || msg.includes("inr") || msg.includes("rupee") || msg.includes("rupees")) return { currency: "INR", symbol: "₹" };
+  if (msg.includes("a$") || msg.includes("aud")) return { currency: "AUD", symbol: "A$" };
+  if (msg.includes("c$") || msg.includes("cad")) return { currency: "CAD", symbol: "C$" };
+  if (msg.includes("s$") || msg.includes("sgd")) return { currency: "SGD", symbol: "S$" };
+  if (msg.includes("$") || msg.includes("usd")) return { currency: "USD", symbol: "$" };
+  if (msg.includes("€") || msg.includes("eur")) return { currency: "EUR", symbol: "€" };
+  if (msg.includes("£") || msg.includes("gbp")) return { currency: "GBP", symbol: "£" };
+  if (msg.includes("¥") || msg.includes("jpy")) return { currency: "JPY", symbol: "¥" };
+  if (msg.includes("chf")) return { currency: "CHF", symbol: "CHF" };
+  return { currency: "INR", symbol: "₹" };
+}
+
+return transactions.map(data => {
+  let type = data.type ? data.type.toUpperCase() : "";
+
+  if (!type) {
+    const incomeKeywords = ["received", "earned", "salary", "credited", "income", "profit", "bonus", "freelance", "got paid"];
+    const expenseKeywords = ["spent", "paid", "bought", "purchased", "expense", "cost", "bill", "fee", "recharged", "ordered", "ate"];
+
+    if (incomeKeywords.some(k => message.includes(k))) {
+      type = "INCOME";
+    } else if (expenseKeywords.some(k => message.includes(k))) {
+      type = "EXPENSE";
+    } else {
+      type = "EXPENSE";
+    }
+  }
+
+  const detected = detectCurrency(message);
+  const currency = data.currency || detected.currency;
+  const currency_symbol = data.currency_symbol || detected.symbol;
+
+  return {
+    json: {
+      date: data.date || "",
+      type: type,
+      category: data.category || "",
+      vendor: data.vendor || data.category || "Not specified",
+      platform: data.platform || "Direct",
+      product: data.product || data.category || "Not specified",
+      amount: Number(data.amount) || 0,
+      currency: currency,
+      currency_symbol: currency_symbol
+    }
+  };
+});
+
+
+
+
+
+Wait node
+
+Resume
+After Time Interval
+Wait Amount
+2.00
+Wait Unit
+
+
+
+
+Google Sheet node
+
+Credential
+Google Sheets OAuth2 API_PersonalFinanceTracker
+Resource
+Sheet Within Document
+Operation
+Append Row
+Document
+From list
+Accounting AI Agent on WhatsApp
+Sheet
+From list
+Sheet1
+Mapping Column Mode
+Map Each Column Manually
+Values to Send
+Date
+{{ $json.date }}
+ 
+Type
+{{ $json.type }}
+ 
+Category
+{{ $json.category }}
+ 
+Vendor
+{{ $json.vendor }}
+ 
+Platform
+{{ $json.platform || 'Direct' }}
+ 
+Product
+{{ $json.product || 'Not specified' }}
+ 
+Amount
+{{ $json.currency_symbol }}{{ $json.amount }}
+ 
+Options
+
+
+Confirm Telegram (Text) node
+
+Chat ID:-{{ $('Telegram Trigger').item.json.message.chat.id }}
+Text:- 
+
+{{ $('Format Text JSON').item.json.type === 'EXPENSE' ? '💸 Expense Recorded!' : '💰 Income Recorded!' }}
+
+📅 Date: {{ $('Format Text JSON').item.json.date }}
+📊 Type: {{ $('Format Text JSON').item.json.type }}
+📂 Category: {{ $('Format Text JSON').item.json.category }}
+🏪 Vendor: {{ $('Format Text JSON').item.json.vendor }}
+💵 Amount: {{ $('Format Text JSON').item.json.currency_symbol }}{{ $('Format Text JSON').item.json.amount }}
+Reply Markup
+None
+Additional Fields
+Append n8n Attribution = Off
+
+
+________________
+
+
+
+
+
+
+
+const raw = $input.item.json.output;
+let transactions = typeof raw === 'string' ? JSON.parse(raw) : raw;
+
+// Handle both single object and array
+if (!Array.isArray(transactions)) {
+  transactions = [transactions];
+}
+
+const message = $('Telegram Trigger').item.json.message.text.toLowerCase();
+
+return transactions.map(data => {
+  let type = data.type ? data.type.toUpperCase() : '';
+
+  if (!type) {
+    const incomeKeywords = ['received', 'earned', 'salary', 'credited', 'income', 'profit', 'bonus', 'freelance', 'got paid'];
+    const expenseKeywords = ['spent', 'paid', 'bought', 'purchased', 'expense', 'cost', 'bill', 'fee', 'recharged', 'ordered', 'ate'];
+
+    if (incomeKeywords.some(k => message.includes(k))) {
+      type = 'INCOME';
+    } else if (expenseKeywords.some(k => message.includes(k))) {
+      type = 'EXPENSE';
+    } else {
+      type = 'EXPENSE';
+    }
+  }
+
+  return {
+    date: data.date || '',
+    type: type,
+    category: data.category || '',
+    vendor: data.vendor || data.category || 'Not specified',
+    amount: Number(data.amount) || 0,
+    currency: data.currency || 'INR',
+    currency_symbol: data.currency_symbol || '₹'
+  };
+});
+
+
+const raw = $input.item.json.output;
+let transactions = typeof raw === 'string' ? JSON.parse(raw) : raw;
+
+if (!Array.isArray(transactions)) {
+  transactions = [transactions];
+}
+
+const message = $('Telegram Trigger').item.json.message.text.toLowerCase();
+
+// Currency auto-detection fallback
+function detectCurrency(msg) {
+  if (msg.includes('₹') || msg.includes('rs') || msg.includes('inr')) return { currency: 'INR', symbol: '₹' };
+  if (msg.includes('$') && !msg.includes('a$') && !msg.includes('c$') && !msg.includes('s$')) return { currency: 'USD', symbol: '$' };
+  if (msg.includes('€') || msg.includes('eur')) return { currency: 'EUR', symbol: '€' };
+  if (msg.includes('£') || msg.includes('gbp')) return { currency: 'GBP', symbol: '£' };
+  if (msg.includes('¥') || msg.includes('jpy')) return { currency: 'JPY', symbol: '¥' };
+  if (msg.includes('a$') || msg.includes('aud')) return { currency: 'AUD', symbol: 'A$' };
+  if (msg.includes('c$') || msg.includes('cad')) return { currency: 'CAD', symbol: 'C$' };
+  if (msg.includes('chf')) return { currency: 'CHF', symbol: 'CHF' };
+  if (msg.includes('s$') || msg.includes('sgd')) return { currency: 'SGD', symbol: 'S$' };
+  return { currency: 'INR', symbol: '₹' }; // default
+}
+
+return transactions.map(data => {
+  let type = data.type ? data.type.toUpperCase() : '';
+
+  if (!type) {
+    const incomeKeywords = ['received', 'earned', 'salary', 'credited', 'income', 'profit', 'bonus', 'freelance', 'got paid'];
+    const expenseKeywords = ['spent', 'paid', 'bought', 'purchased', 'expense', 'cost', 'bill', 'fee', 'recharged', 'ordered', 'ate'];
+
+    if (incomeKeywords.some(k => message.includes(k))) {
+      type = 'INCOME';
+    } else if (expenseKeywords.some(k => message.includes(k))) {
+      type = 'EXPENSE';
+    } else {
+      type = 'EXPENSE';
+    }
+  }
+
+  // Use AI detected currency, fallback to message detection
+  const detected = detectCurrency(message);
+  const currency = data.currency || detected.currency;
+  const currency_symbol = data.currency_symbol || detected.symbol;
+
+  return {
+    date: data.date || '',
+    type: type,
+    category: data.category || '',
+    vendor: data.vendor || data.category || 'Not specified',
+    amount: Number(data.amount) || 0,
+    currency: currency,
+    currency_symbol: currency_symbol
+  };
+});

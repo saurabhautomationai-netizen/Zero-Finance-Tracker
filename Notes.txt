@@ -1,0 +1,46 @@
+AI Chat Model (Would Add):_ AI Copilot / Finance Assistant
+
+What is missing
+
+You still need:
+
+Intent Classifier
+
+Example:
+
+User Message
+↓
+Intent Detection
+├── Transaction
+├── Finance Question
+├── General Chat
+└── Report Request
+What you currently have
+
+You already have:
+
+transaction extraction
+sheet storage
+monthly insights
+suggestions
+budget alerts
+
+But not:
+
+conversational finance AI
+What AI Chat Mode would add
+
+Then users can ask:
+How much did I spend on food?
+Which category is highest this month?
+How much savings do I have?
+Did my spending increase?
+Show my entertainment expenses.
+How much income came from freelance?
+
+
+
+
+
+
+{{ $("Telegram Trigger").first().json.message.chat.id }}

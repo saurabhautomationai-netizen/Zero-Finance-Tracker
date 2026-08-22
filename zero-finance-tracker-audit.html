@@ -1,0 +1,580 @@
+<title>Zero Finance Tracker Audit</title>
+<style>
+  :root {
+    --paper:      #F4F6F7;
+    --surface:    #FFFFFF;
+    --sunken:     #EAEEF0;
+    --ink:        #15191C;
+    --ink-soft:   #4A555C;
+    --ink-faint:  #74828A;
+    --rule:       #D3DBDF;
+    --rule-hard:  #A9B6BC;
+    --accent:     #0C6B6B;
+    --accent-dim: #DCECEA;
+    --crit:       #A81F26;
+    --crit-bg:    #F7E2E2;
+    --high:       #8A5300;
+    --high-bg:    #F8EBD4;
+    --med:        #2C5F8A;
+    --med-bg:     #E0EBF4;
+    --low:        #4A555C;
+    --low-bg:     #E6EBED;
+    --ok:         #2C6E45;
+
+    --display: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --body: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    --mono: ui-monospace, "Cascadia Mono", "Cascadia Code", Consolas, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #0E1214;
+      --surface:    #161B1E;
+      --sunken:     #101618;
+      --ink:        #E2E8EA;
+      --ink-soft:   #A3B0B6;
+      --ink-faint:  #78868C;
+      --rule:       #2A3438;
+      --rule-hard:  #46545A;
+      --accent:     #4FBFB8;
+      --accent-dim: #12302E;
+      --crit:       #F08A8A;
+      --crit-bg:    #3A1B1D;
+      --high:       #E0AC5E;
+      --high-bg:    #3A2C14;
+      --med:        #8CBBE0;
+      --med-bg:     #172C3B;
+      --low:        #A3B0B6;
+      --low-bg:     #222B2F;
+      --ok:         #6FC08D;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:      #0E1214;
+    --surface:    #161B1E;
+    --sunken:     #101618;
+    --ink:        #E2E8EA;
+    --ink-soft:   #A3B0B6;
+    --ink-faint:  #78868C;
+    --rule:       #2A3438;
+    --rule-hard:  #46545A;
+    --accent:     #4FBFB8;
+    --accent-dim: #12302E;
+    --crit:       #F08A8A;
+    --crit-bg:    #3A1B1D;
+    --high:       #E0AC5E;
+    --high-bg:    #3A2C14;
+    --med:        #8CBBE0;
+    --med-bg:     #172C3B;
+    --low:        #A3B0B6;
+    --low-bg:     #222B2F;
+    --ok:         #6FC08D;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0 20px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 940px; margin: 0 auto; }
+
+  /* ---- masthead ---- */
+  .masthead {
+    padding: 56px 0 24px;
+    border-bottom: 2px solid var(--ink);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .eyebrow .sep { color: var(--rule-hard); }
+  h1 {
+    font-family: var(--display);
+    font-size: clamp(34px, 6vw, 54px);
+    font-weight: 700;
+    letter-spacing: -0.028em;
+    line-height: 1.02;
+    text-wrap: balance;
+    margin: 0;
+  }
+  .standfirst {
+    font-size: 19px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 60ch;
+    margin: 0;
+  }
+
+  /* ---- stat strip ---- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border-bottom: 1px solid var(--rule);
+    margin: 0 0 8px;
+  }
+  .stat { background: var(--surface); padding: 16px 14px; }
+  .stat b {
+    display: block;
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+  .stat span {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-top: 6px;
+  }
+
+  /* ---- sections ---- */
+  section { padding-top: 52px; }
+  h2 {
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 6px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule-hard);
+  }
+  .lede {
+    max-width: 66ch;
+    color: var(--ink-soft);
+    margin: 18px 0 0;
+  }
+  p { max-width: 66ch; }
+
+  /* ---- entry points ---- */
+  .entries {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    margin-top: 24px;
+  }
+  .entry { background: var(--surface); padding: 18px 16px; }
+  .entry h3 {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    color: var(--ink);
+  }
+  .entry .kind {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .entry p { font-size: 15px; margin: 10px 0 0; color: var(--ink-soft); }
+  .entry.dead { background: var(--crit-bg); }
+  .entry.dead .kind { color: var(--crit); }
+
+  /* ---- flow map ---- */
+  .map {
+    margin-top: 24px;
+    border: 1px solid var(--rule-hard);
+    background: var(--sunken);
+    overflow-x: auto;
+  }
+  .map pre {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.65;
+    margin: 0;
+    padding: 20px;
+    color: var(--ink-soft);
+    white-space: pre;
+  }
+  .map .n { color: var(--ink); }
+  .map .ai { color: var(--accent); font-weight: 600; }
+  .map .out { color: var(--ink-faint); }
+  .map .bad { color: var(--crit); font-weight: 600; }
+  .map .hdr {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--surface);
+  }
+
+  /* ---- findings ---- */
+  .findings { margin-top: 24px; display: flex; flex-direction: column; }
+  .finding {
+    border-top: 1px solid var(--rule);
+    padding: 26px 0;
+  }
+  .finding:last-child { border-bottom: 1px solid var(--rule); }
+  .fhead { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; }
+  .chip {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 9px;
+    white-space: nowrap;
+    flex: none;
+  }
+  .chip.crit { background: var(--crit-bg); color: var(--crit); }
+  .chip.high { background: var(--high-bg); color: var(--high); }
+  .chip.med  { background: var(--med-bg);  color: var(--med); }
+  .chip.low  { background: var(--low-bg);  color: var(--low); }
+  .chip.done { background: var(--accent-dim); color: var(--accent); }
+  .finding h3 {
+    font-family: var(--display);
+    font-size: 21px;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+    margin: 0;
+    text-wrap: balance;
+    flex: 1 1 320px;
+  }
+  .finding p { margin: 12px 0 0; }
+  .fix {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    max-width: 66ch;
+  }
+  .fix strong {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 5px;
+  }
+  .fix span { font-size: 15.5px; color: var(--ink-soft); }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    background: var(--sunken);
+    border: 1px solid var(--rule);
+    padding: 1px 5px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+
+  /* ---- tables ---- */
+  .tablewrap { overflow-x: auto; margin-top: 24px; border: 1px solid var(--rule); }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    background: var(--surface);
+    font-family: var(--mono);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+  th {
+    text-align: left;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 600;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--rule-hard);
+    white-space: nowrap;
+  }
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--rule);
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: none; }
+  td.name { color: var(--ink); }
+  td.w { color: var(--ok); }
+  td.r { color: var(--med); }
+  td.orphan { color: var(--crit); }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 20px;
+    border-top: 2px solid var(--ink);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-faint);
+    line-height: 1.7;
+  }
+
+  a { color: var(--accent); }
+  a:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">
+      <span>n8n · saurabhautomation7596</span>
+      <span class="sep">/</span>
+      <span>hbdM348CVh7f0rcS</span>
+      <span class="sep">/</span>
+      <span>active</span>
+    </div>
+    <h1>Zero Finance Tracker</h1>
+    <p class="standfirst">An architecture audit of a live 118-node workflow. It captures expenses from chat across text, voice, image and PDF, and answers ten kinds of finance question — but the write path and the read path point at different databases.</p>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><b>118</b><span>Nodes</span></div>
+    <div class="stat"><b>4</b><span>Entry points</span></div>
+    <div class="stat"><b>10</b><span>AI agents</span></div>
+    <div class="stat"><b>10</b><span>Intent routes</span></div>
+    <div class="stat"><b>2</b><span>Datastores</span></div>
+    <div class="stat"><b>22</b><span>Dead ends</span></div>
+  </div>
+
+  <section>
+    <h2>How it starts</h2>
+    <p class="lede">Four independent entry points. Only one of them carries real user traffic today.</p>
+    <div class="entries">
+      <div class="entry">
+        <div class="kind">Telegram trigger</div>
+        <h3>WhatsApp Webhook</h3>
+        <p>The live front door. Despite the name, this is a Telegram bot trigger — every inbound message routes through it into the intent classifier.</p>
+      </div>
+      <div class="entry dead">
+        <div class="kind">Webhook · dead end</div>
+        <h3>Webhook</h3>
+        <p>The real Meta WhatsApp endpoint at <code>/whatsapp-webhook</code>. Verification works; message handling classifies intent and then stops at a switch with nothing wired to it.</p>
+      </div>
+      <div class="entry">
+        <div class="kind">Schedule · 09:00 on the 1st</div>
+        <h3>Schedule Trigger_Monthly</h3>
+        <p>Builds the monthly report: totals, subscription detection, then an insights agent that writes the summary message.</p>
+      </div>
+      <div class="entry">
+        <div class="kind">Schedule · daily 02:55</div>
+        <h3>Schedule Trigger_Reminder</h3>
+        <p>Reads the Reminders sheet, sends alerts for anything due, then stamps the row as notified.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The live path</h2>
+    <p class="lede">One message in, classified once, then fanned across ten intents. Transaction capture is the deep branch — the other nine are read-and-reply.</p>
+    <div class="map">
+      <div class="hdr">Main graph from WhatsApp Webhook (Telegram)</div>
+<pre><span class="n">WhatsApp Webhook</span>
+└─ <span class="ai">AI Agent (Intent Classifier)</span>
+   └─ Switch1
+      <span class="out">├─0 Transaction ──</span> Switch Node
+      <span class="out">│</span>                  <span class="out">├─0 voice ─</span> Download → <span class="ai">Whisper</span> → <span class="ai">Accounting Agent (Voice)</span> ─┐
+      <span class="out">│</span>                  <span class="out">├─1 image ─</span> Download → <span class="ai">Vision Agent (Image)</span> ───────────────┤
+      <span class="out">│</span>                  <span class="out">├─2 doc ───</span> Download → Switch                                <span class="out">│</span>
+      <span class="out">│</span>                  <span class="out">│</span>                     <span class="out">├─0 PDF ──</span> <span class="ai">Document Analyzer</span> ──┤
+      <span class="out">│</span>                  <span class="out">│</span>                     <span class="out">│</span>          <span class="bad">└→ Bank Statement Analyzer  ⚠ both fire</span>
+      <span class="out">│</span>                  <span class="out">│</span>                     <span class="out">├─1 text ─</span> <span class="ai">Document Analyzer</span> ──┤
+      <span class="out">│</span>                  <span class="out">│</span>                     <span class="out">└─2 xlsx ─</span> <span class="ai">Document Analyzer</span> ──┤
+      <span class="out">│</span>                  <span class="out">└─3 text ──</span> <span class="ai">Accounting Agent (Text)</span> ────────────────┤
+      <span class="out">│</span>                                                                    <span class="out">▼</span>
+      <span class="out">│</span>                                                           Format Text JSON
+      <span class="out">│</span>                                                           Get User → Create User
+      <span class="out">│</span>                                                           Get Existing Transaction
+      <span class="out">│</span>                                                           Duplicate? ─ yes → reply
+      <span class="out">│</span>                                                           <span class="bad">Insert Transaction (Postgres)</span>
+      <span class="out">│</span>                                                           Anomaly? → alert
+      <span class="out">│</span>                                                           Over budget? → alert
+      <span class="out">│</span>                                                           Suggestion → reply
+      <span class="out">├─1 Statement ─────</span> PDF → <span class="ai">Bank Statement Analyzer</span> → append Transactions
+      <span class="out">├─2 Finance chat ──</span> read Transactions → calc → reply
+      <span class="out">├─3 Report ────────</span> read Transactions → calc → reply
+      <span class="out">├─4 Credit card ───</span> append CreditCards → reply
+      <span class="out">├─5 Card payment ──</span> append Transactions → reply
+      <span class="out">├─6 Loan ──────────</span> <span class="ai">Loan Extract Agent</span> → append Loans → reply
+      <span class="out">├─7 Affordability ─</span> read Transactions + CreditCards + Loans → calc → reply
+      <span class="out">├─8 Forecast ──────</span> read Transactions + CreditCards + Loans → calc → reply
+      <span class="out">└─9 Reminder ──────</span> append Reminders → reply
+
+<span class="n">Webhook</span> (Meta WhatsApp)
+├─0 Meta Verification → Respond to Webhook          <span class="out">✓ verification works</span>
+└─1 Normalize → Get Conversation Context
+   └─ <span class="ai">AI Agent (Intent Classifier)1</span>
+      └─ <span class="bad">Switch2 ── no outgoing connections ── message dropped</span>
+
+<span class="out">orphaned, no inbound:</span>
+   <span class="n">Get All Transaction</span> → Finance Chat Context → <span class="ai">Finance Chat Agent</span>
+                                          ├─ Update Conversation Context
+                                          └─ Build Reply Payload → HTTP Request</pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Findings</h2>
+    <p class="lede">Ranked by what breaks for the user, not by how hard it is to fix.</p>
+
+    <div class="findings">
+
+      <article class="finding">
+        <div class="fhead">
+          <span class="chip crit">Critical</span>
+          <h3>Transactions are written to Postgres, but every report reads Google Sheets</h3>
+        </div>
+        <p>The capture chain ends at <code>Insert Transaction</code> against the Postgres <code>transactions</code> table. Nothing in that chain appends to a spreadsheet. Meanwhile the report, finance chat, forecast and affordability branches all read the <code>Transactions</code> sheet, and the monthly report reads <code>Sheet1</code>.</p>
+        <p>The consequence is that an expense logged by chat is confirmed to the user, then never appears in a single report, budget figure, forecast or chat answer. The two halves of the product are looking at different data.</p>
+        <div class="fix"><strong>Fix</strong><span>Pick one store. If Postgres is the intent, convert the nine read branches to SQL. If Sheets is the intent, add an append after <code>Insert Transaction</code> — or replace the Postgres node outright and keep Postgres only for user identity.</span></div>
+      </article>
+
+      <article class="finding">
+        <div class="fhead">
+          <span class="chip crit">Critical</span>
+          <h3>Real WhatsApp messages are received, classified, then silently dropped</h3>
+        </div>
+        <p>The Meta webhook at <code>/whatsapp-webhook</code> handles verification correctly. The message branch normalizes the payload, loads conversation context, runs it through <code>AI Agent (Intent Classifier)1</code> — and hands the result to <code>Switch2</code>, which has no outgoing connections at all.</p>
+        <p>The chain that should follow it exists and is fully built — <code>Get All Transaction</code> → <code>Finance Chat Context Code</code> → <code>Finance Chat Agent</code> → <code>Build WhatsApp Reply Payload</code> → <code>HTTP Request</code> — but has no inbound connection either. It was never joined up. Every real WhatsApp message costs an OpenAI call and gets no reply.</p>
+        <div class="fix"><strong>Fix</strong><span>Wire <code>Switch2</code>'s outputs to the orphaned Finance Chat chain, or disable the webhook until that path is finished so it stops burning tokens.</span></div>
+      </article>
+
+      <article class="finding">
+        <div class="fhead">
+          <span class="chip crit">Critical</span>
+          <h3>Everything labelled "WhatsApp" is actually Telegram</h3>
+        </div>
+        <p><code>WhatsApp Webhook</code> is an <code>n8n-nodes-base.telegramTrigger</code>, and all eighteen outbound "WhatsApp …" nodes are Telegram send nodes. The shipping product is a Telegram bot wearing WhatsApp names, alongside a second, unfinished, genuinely-WhatsApp path.</p>
+        <p>This is not cosmetic. Anyone reading the canvas — including you in six months — will mis-diagnose which channel is live, and the two paths maintain separate conversation state.</p>
+        <div class="fix"><strong>Fix</strong><span>Rename the Telegram nodes to say Telegram, and decide whether WhatsApp is a second channel or a replacement. If it's a replacement, the ten intent branches need to be shared between both front doors rather than duplicated.</span></div>
+      </article>
+
+      <article class="finding">
+        <div class="fhead">
+          <span class="chip high">High</span>
+          <h3>Every PDF runs down both document paths at once</h3>
+        </div>
+        <p><code>PDF_Extract from File</code> has two nodes on its single output: <code>Document Analyzer Agent</code> and <code>Bank Statement Analyzer Agent</code>. Both run for every PDF that arrives.</p>
+        <p>A one-line receipt is therefore also parsed as a bank statement, and a real statement is also pushed through the single-transaction path. Both branches can write, so a single upload can produce duplicate rows in <code>Transactions</code> — and it doubles the token cost of every PDF.</p>
+        <div class="fix"><strong>Fix</strong><span>Put a switch after the extract step that decides receipt vs. statement — page count, row count, or a cheap classifier call — and send the file down exactly one branch.</span></div>
+      </article>
+
+      <article class="finding">
+        <div class="fhead">
+          <span class="chip high">High</span>
+          <h3>The monthly report reads a sheet nothing writes to</h3>
+        </div>
+        <p><code>Get All Rows Transactions Sheet</code> reads <code>Sheet1</code>. Every append in the workflow targets <code>Transactions</code>, <code>CreditCards</code>, <code>Loans</code>, <code>Subscriptions</code> or <code>Reminders</code> — never <code>Sheet1</code>. The only other nodes touching it are two disconnected leftovers.</p>
+        <p>So the monthly report — totals, subscription detection, and the insights agent's narrative — is running on whatever historical rows happen to sit in <code>Sheet1</code>, not on this month's activity.</p>
+        <div class="fix"><strong>Fix</strong><span>Point it at <code>Transactions</code> (or the Postgres table, once finding 1 is settled) and re-run it manually to confirm the numbers move.</span></div>
+      </article>
+
+      <article class="finding">
+        <div class="fhead">
+          <span class="chip med">Medium</span>
+          <h3>gpt-4o-mini is doing the vision and statement work</h3>
+        </div>
+        <p>All ten agents run <code>gpt-4o-mini</code>. That is a sound default for intent routing and short text extraction, and it keeps the per-message cost low.</p>
+        <p>Two jobs are pushing against its limits: <code>Vision Agent (Image)</code> reading receipt photographs, and <code>Bank Statement Analyzer Agent</code> extracting many rows of tabular data. These are exactly the tasks where a weaker model silently returns plausible-but-wrong amounts, which then get written to the ledger as fact.</p>
+        <div class="fix"><strong>Fix</strong><span>Move those two agents to a stronger model and leave the other eight on mini. The volume on those branches is low, so the cost difference is small.</span></div>
+      </article>
+
+      <article class="finding">
+        <div class="fhead">
+          <span class="chip med">Medium</span>
+          <h3>Reminders fire at 02:55</h3>
+        </div>
+        <p><code>Schedule Trigger_Reminder</code> runs daily at 02:55 in the instance timezone and sends the alert immediately. Bill reminders arrive in the middle of the night, which is when they are least likely to be acted on and most likely to get the bot muted.</p>
+        <div class="fix"><strong>Fix</strong><span>Move it to a morning hour and set the workflow timezone explicitly rather than inheriting the instance default.</span></div>
+      </article>
+
+      <article class="finding">
+        <div class="fhead">
+          <span class="chip low">Low</span>
+          <h3>Debug and leftover nodes are still on the canvas</h3>
+        </div>
+        <p>Four nodes have no connections in either direction: <code>Execute a SQL query</code> (a scratch <code>SELECT NOW(); SELECT * FROM users; SELECT * FROM transactions;</code>), <code>Append row in sheet</code>, <code>Get row(s) in sheet1</code>, and <code>Get All Transactions Sheet</code>.</p>
+        <p>They don't run, but they make the canvas harder to read and they're the reason <code>Sheet1</code> still looks like a live target.</p>
+        <div class="fix"><strong>Fix</strong><span>Delete them, or move them into a clearly-marked scratch area of the canvas.</span></div>
+      </article>
+
+      <article class="finding">
+        <div class="fhead">
+          <span class="chip done">Resolved</span>
+          <h3>Your notes say the intent classifier is missing — it isn't</h3>
+        </div>
+        <p><a href="Notes.txt">Notes.txt</a> lists "Intent Classifier" and "conversational finance AI" as the gaps still to close. Both are built: there are two intent classifiers — one per front door — routing to ten branches, plus a working <code>Finance Chat Agent</code>. The example questions in that file ("How much did I spend on food?", "Which category is highest this month?") are served by intent routes 2 and 3.</p>
+        <p>The real gap is that route 2 reads a sheet the capture path never writes to, which is finding 1 — not a missing feature.</p>
+      </article>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>Where data lives</h2>
+    <p class="lede">One spreadsheet, six tabs, plus a Postgres database used only by the capture path.</p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Store</th><th>Table / tab</th><th>Written by</th><th>Read by</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="name">Postgres</td><td>transactions</td><td class="w">Insert Transaction</td><td class="r">Get Existing Transaction, Get All Transaction</td><td class="orphan">read path orphaned</td></tr>
+          <tr><td class="name">Postgres</td><td>users</td><td class="w">Create User</td><td class="r">Get User, Get User Again</td><td>ok</td></tr>
+          <tr><td class="name">Sheets</td><td>Transactions</td><td class="w">Append Statement Row, Card Payment</td><td class="r">Report, Chat, Forecast, Affordability</td><td class="orphan">missing chat captures</td></tr>
+          <tr><td class="name">Sheets</td><td>Sheet1</td><td class="orphan">nothing connected</td><td class="r">Monthly report</td><td class="orphan">stale source</td></tr>
+          <tr><td class="name">Sheets</td><td>CreditCards</td><td class="w">Append Credit Card Sheet</td><td class="r">Affordability, Forecast</td><td>ok</td></tr>
+          <tr><td class="name">Sheets</td><td>Loans</td><td class="w">Append row in sheet1</td><td class="r">Affordability, Forecast</td><td>ok</td></tr>
+          <tr><td class="name">Sheets</td><td>Subscriptions</td><td class="w">Append row Subscriptions</td><td class="r">Monthly report</td><td>ok</td></tr>
+          <tr><td class="name">Sheets</td><td>Reminders</td><td class="w">Append, Update Last Notified</td><td class="r">Reminder schedule</td><td>ok</td></tr>
+          <tr><td class="name">Sheets</td><td>ConversationContext</td><td class="w">Update Conversation Context</td><td class="r">Get Conversation Context</td><td class="orphan">WhatsApp path only</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Suggested order of work</h2>
+    <p class="lede">Findings 1 and 5 are the same decision, so they get made together. Everything else is independent.</p>
+    <p><strong>First</strong>, settle the datastore question — Postgres or Sheets — and make the capture path and all nine read branches agree. Until that is done, the numbers the bot reports are not the numbers the user entered, and no other fix changes that.</p>
+    <p><strong>Then</strong>, split the PDF fan-out, so uploads stop double-writing into whichever store you just standardized on.</p>
+    <p><strong>Then</strong>, decide WhatsApp's fate: finish <code>Switch2</code> or disable the webhook. Leaving it half-wired costs money on every inbound message and returns nothing.</p>
+    <p><strong>Last</strong>, the housekeeping — rename the Telegram nodes, upgrade the two vision-and-statement agents, move the reminder off 02:55, and clear the four orphans.</p>
+  </section>
+
+  <footer>
+    Audit of workflow hbdM348CVh7f0rcS · 118 nodes · read from the n8n public API<br>
+    Source JSON exported to <a href="zero-finance-tracker.json">zero-finance-tracker.json</a><br>
+    Findings derived from the workflow graph as deployed, not from execution history.
+  </footer>
+
+</div>

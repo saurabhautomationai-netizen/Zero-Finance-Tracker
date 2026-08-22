@@ -1,0 +1,276 @@
+I am working on making personal finance traker with telegram trigger
+
+Switch node
+Mode
+Rules
+Routing Rules
+{{ $json.message.voice.file_id }}
+ 
+
+is not empty
+Rename Output
+
+{{ $json.message.photo[0].file_id }}
+ 
+
+is not empty
+Rename Output
+
+{{ $json.message.document.file_id }}
+ 
+
+is not empty
+Rename Output
+
+{{ $json.message.text }}
+ 
+
+is not empty
+Rename Output
+
+
+
+
+Get image file node
+
+Credential
+Personal Finance Tracker
+Resource
+File
+Operation
+Get
+File ID
+{{ $json.message.photo[$json.message.photo.length - 1].file_id }}
+ 
+Download = off
+
+
+FROM: Get Image File node 
+
+HTTP Request
+
+Method
+GET
+URL
+https://api.telegram.org/file/bottoken/{{ $json.result.file_path }}
+ 
+Authentication
+None
+Send Query Parameters
+
+Send Headers
+
+Send Body
+
+
+
+Save Image to Drive
+
+
+Credential
+Google Drive OAuth2 API-PersoanalFinanceTracekr
+Resource
+File
+Operation
+Upload
+Input Data Field Name
+data
+The name of the input field containing the binary file data to update the file
+File Name
+receipt_{{ $now.toFormat("yyyy-MM-dd_HHmmss") }}.jpg
+ 
+receipt_2026-05-03_162350.jpg
+Parent Drive
+From list
+My Drive
+Parent Folder
+From list
+
+
+
+
+Analyze Image (Vision)
+Credential
+Personal Finance Tracker
+Resource
+Image
+Operation
+Analyze Image
+Model
+From list
+gpt-4o
+Text Input
+You are an accounting assistant. Extract ALL transaction details from this receipt/bill image.
+Additional context from user: {{ $('Telegram Trigger').item.json.message.caption || 'No additional context' }}
+
+Return ONLY a valid JSON array, no extra text, no markdown:
+[
+  {
+    "date": "YYYY-MM-DD",
+    "type": "EXPENSE or INCOME",
+    "category": "Food/Transport/Shopping/Bills/Health/Education/Other",
+    "vendor": "",
+    "platform": "",
+    "product": "",
+    "amount": 0,
+    "currency": "INR",
+    "currency_symbol": "₹"
+  }
+]
+
+RULES:
+- type: EXPENSE for purchases/bills, INCOME for payments received/salary
+- vendor: Extract the full seller/store name (e.g. ETRADE MARKETING, Subway, Zomato)
+- platform: Extract the platform used (e.g. Amazon, Flipkart, Swiggy, Zomato, Myntra, Direct)
+- product: Extract the main product/service purchased (e.g. Mosquito Net, Nike Shoes, Burger, Electricity Bill)
+- category: Classify based on product:
+  Clothes/Shoes/Accessories → Shopping
+  Food/Restaurant/Grocery → Food
+  Electricity/Water/Internet → Bills
+  Medicine/Hospital → Health
+  Uber/Auto/Flight → Transport
+  Books/Course → Education
+  Salary/Freelance/Business → Other
+- currency: Detect from receipt (₹/Rs → INR, $ → USD, € → EUR, £ → GBP), default INR
+- amount: Grand total or final amount paid only (after discounts and taxes)
+- date: Extract from receipt in YYYY-MM-DD format, if not found use today: {{ $now.toFormat("yyyy-MM-dd") }}
+Input Type
+Image URL(s)
+URL(s)
+https://api.telegram.org/file/bottoken/{{ $('Get Image File').item.json.result.file_path }}
+ 
+Simplify Output
+
+
+
+
+Format Text JSON (Code node)
+JavaScript Code
+
+Mode
+Run Once for All Items
+Language
+
+JavaScript:
+
+const item = $input.item.json;
+
+function findText(obj) {
+  if (!obj || typeof obj !== 'object') return '';
+  for (const key of Object.keys(obj)) {
+    const val = obj[key];
+    if (typeof val === 'string' && val.includes('"date"')) return val;
+    if (typeof val === 'object') {
+      const found = findText(val);
+      if (found) return found;
+    }
+  }
+  return '';
+}
+
+const raw = findText(item);
+const cleaned = raw.replace(/```json|```/g, '').trim();
+
+const match = cleaned.match(/\[[\s\S]*\]/);
+if (!match) return [{ json: { error: 'No JSON found' } }];
+
+let transactions;
+try {
+  transactions = JSON.parse(match[0]);
+} catch(e) {
+  return [{ json: { error: 'Parse failed' } }];
+}
+
+if (!Array.isArray(transactions)) {
+  transactions = [transactions];
+}
+
+return transactions.map(data => ({
+  json: {
+    date: data.date || '',
+    type: data.type ? data.type.toUpperCase() : 'EXPENSE',
+    category: data.category || '',
+    vendor: data.vendor || data.category || 'Not specified',
+    platform: data.platform || 'Direct',
+    product: data.product || 'Not specified',
+    amount: Number(data.amount) || 0,
+    currency: data.currency || 'INR',
+    currency_symbol: data.currency_symbol || '₹'
+  }
+}));
+
+
+Google Sheet node
+
+
+Credential
+Google Sheets OAuth2 API_PersonalFinanceTracker
+Resource
+Sheet Within Document
+Operation
+Append Row
+Document
+From list
+Accounting AI Agent on WhatsApp
+Sheet
+From list
+Sheet1
+Mapping Column Mode
+Map Each Column Manually
+Values to Send
+Date
+{{ $json.date }}
+ 
+Type
+{{ $json.type }}
+ 
+Category
+{{ $json.category }}
+ 
+Vendor
+{{ $json.vendor }}
+ 
+Platform
+{{ $json.platform }}
+ 
+Product
+{{ $json.product }}
+ 
+Amount
+{{ $json.amount }}
+ 
+Options
+
+
+
+
+Confirm Telegram (Image)
+
+
+Credential
+Personal Finance Tracker
+Resource
+Message
+Operation
+Send Message
+Chat ID
+{{ $('Telegram Trigger').item.json.message.chat.id }}
+ 
+1104381256
+Text
+{{ $('Parse Image JSON1').item.json.type === 'EXPENSE' ? '💸 Expense Recorded!' : '💰 Income Recorded!' }}
+
+📅 Date: {{ $('Parse Image JSON1').item.json.date }}
+📊 Type: {{ $('Parse Image JSON1').item.json.type }}
+📂 Category: {{ $('Parse Image JSON1').item.json.category }}
+🛒 Platform: {{ $('Parse Image JSON1').item.json.platform }}
+📦 Product: {{ $('Parse Image JSON1').item.json.product }}
+🏪 Vendor: {{ $('Parse Image JSON1').item.json.vendor }}
+💵 Amount: {{ $('Parse Image JSON1').item.json.currency_symbol }}{{ $('Parse Image JSON1').item.json.amount }}
+ 
+Reply Markup
+None
+Additional Fields
+Append n8n Attribution = Off
+
+
