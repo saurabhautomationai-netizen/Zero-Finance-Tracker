@@ -3,12 +3,12 @@
   "name": "Zero Finance Tracker - Email Ingestion",
   "description": null,
   "active": true,
-  "activeVersionId": "39c5c095-53ea-4086-8ef1-f9069fd9f924",
+  "activeVersionId": "b179e52e-3e24-469f-bddb-b6796ffe3539",
   "createdAt": "2026-04-04T16:01:47.981Z",
-  "updatedAt": "2026-08-23T11:41:01.586Z",
+  "updatedAt": "2026-08-23T12:01:35.082Z",
   "isArchived": false,
-  "versionId": "39c5c095-53ea-4086-8ef1-f9069fd9f924",
-  "versionCounter": 183,
+  "versionId": "b179e52e-3e24-469f-bddb-b6796ffe3539",
+  "versionCounter": 184,
   "sourceWorkflowId": null,
   "triggerCount": 1,
   "nodes": [
@@ -17,8 +17,8 @@
         "rule": {
           "interval": [
             {
-              "field": "minutes",
-              "minutesInterval": 2
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
             }
           ]
         }
@@ -30,7 +30,7 @@
         100
       ],
       "id": "e9ff6663-79d1-4171-88fc-ef67b7e64032",
-      "name": "Schedule Trigger (Every 2 mins)"
+      "name": "Schedule Trigger (Daily at 8:00 AM)"
     },
     {
       "parameters": {
@@ -286,17 +286,6 @@
     }
   ],
   "connections": {
-    "Schedule Trigger (Every 2 mins)": {
-      "main": [
-        [
-          {
-            "node": "Get Unread Financial Emails",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Get Unread Financial Emails": {
       "main": [
         [
@@ -391,6 +380,17 @@
           }
         ]
       ]
+    },
+    "Schedule Trigger (Daily at 8:00 AM)": {
+      "main": [
+        [
+          {
+            "node": "Get Unread Financial Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "nodeGroups": [],
@@ -448,7 +448,7 @@
     }
   ],
   "activeVersion": {
-    "versionId": "39c5c095-53ea-4086-8ef1-f9069fd9f924",
+    "versionId": "b179e52e-3e24-469f-bddb-b6796ffe3539",
     "workflowId": "MhRwXY6ONsO75M6M",
     "nodes": [
       {
@@ -698,12 +698,13 @@
             "name": "Personal Finance Tracker_API"
           }
         },
-        "webhookId": "60c29e3d-5e66-40ef-9f85-473514a80685"
+        "webhookId": "60c29e3d-5e66-40ef-9f85-473514a80685",
+        "continueOnFail": true
       },
       {
         "parameters": {
           "operation": "markAsRead",
-          "messageId": "={{ $json.thread_id || $json.id }}"
+          "messageId": "={{ $('Get Email Details').item.json.id || $('Get Email Details').item.json.threadId }}"
         },
         "type": "n8n-nodes-base.gmail",
         "typeVersion": 2.2,
@@ -719,7 +720,8 @@
             "name": "Telegram_Scheduling Gmail OAuth2 API"
           }
         },
-        "webhookId": "3f273c12-017b-4b19-ae19-e2b8a91389cb"
+        "webhookId": "3f273c12-017b-4b19-ae19-e2b8a91389cb",
+        "continueOnFail": true
       }
     ],
     "connections": {
@@ -835,32 +837,32 @@
     "name": null,
     "description": null,
     "autosaved": false,
-    "createdAt": "2026-08-23T11:41:01.587Z",
-    "updatedAt": "2026-08-23T11:41:01.587Z",
+    "createdAt": "2026-08-23T12:01:35.084Z",
+    "updatedAt": "2026-08-23T12:01:35.084Z",
     "workflowPublishHistory": [
       {
-        "id": 235,
+        "id": 239,
         "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "39c5c095-53ea-4086-8ef1-f9069fd9f924",
+        "versionId": "b179e52e-3e24-469f-bddb-b6796ffe3539",
         "event": "activated",
         "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-23T11:41:01.712Z"
+        "createdAt": "2026-08-23T12:01:35.219Z"
       },
       {
-        "id": 237,
+        "id": 241,
         "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "39c5c095-53ea-4086-8ef1-f9069fd9f924",
+        "versionId": "b179e52e-3e24-469f-bddb-b6796ffe3539",
         "event": "activated",
         "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-23T11:41:03.101Z"
+        "createdAt": "2026-08-23T12:01:37.029Z"
       },
       {
-        "id": 236,
+        "id": 240,
         "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "39c5c095-53ea-4086-8ef1-f9069fd9f924",
+        "versionId": "b179e52e-3e24-469f-bddb-b6796ffe3539",
         "event": "deactivated",
         "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-23T11:41:02.395Z"
+        "createdAt": "2026-08-23T12:01:36.308Z"
       }
     ]
   }
