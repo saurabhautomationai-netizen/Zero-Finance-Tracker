@@ -3,12 +3,12 @@
   "name": "Zero Finance Tracker - Email Ingestion",
   "description": null,
   "active": true,
-  "activeVersionId": "7f6af916-7ae9-4867-9c83-1ef6c0fec909",
+  "activeVersionId": "32bea03f-4c95-4a85-9181-f36b1129a6de",
   "createdAt": "2026-04-04T16:01:47.981Z",
-  "updatedAt": "2026-08-22T10:10:16.653Z",
+  "updatedAt": "2026-08-23T11:26:41.034Z",
   "isArchived": false,
-  "versionId": "7f6af916-7ae9-4867-9c83-1ef6c0fec909",
-  "versionCounter": 179,
+  "versionId": "32bea03f-4c95-4a85-9181-f36b1129a6de",
+  "versionCounter": 180,
   "sourceWorkflowId": null,
   "triggerCount": 1,
   "nodes": [
@@ -18,7 +18,7 @@
           "interval": [
             {
               "field": "minutes",
-              "minutesInterval": 5
+              "minutesInterval": 2
             }
           ]
         }
@@ -30,18 +30,18 @@
         100
       ],
       "id": "e9ff6663-79d1-4171-88fc-ef67b7e64032",
-      "name": "Schedule Trigger (Every 5 mins)"
+      "name": "Schedule Trigger (Every 2 mins)"
     },
     {
       "parameters": {
         "operation": "getAll",
-        "limit": 10,
+        "limit": 15,
         "simple": false,
         "filters": {
           "labelIds": [
             "UNREAD"
           ],
-          "q": "debited OR credited OR spent OR payment OR transaction OR invoice OR bill OR statement OR \"credit card\" OR \"bank alert\" OR UPI OR Swiggy OR Zomato OR Amazon OR Uber"
+          "q": "debited OR credited OR spent OR payment OR transaction OR txn OR invoice OR bill OR statement OR \"credit card\" OR \"bank alert\" OR InstaAlerts OR UPI OR Swiggy OR Zomato OR Amazon OR Uber OR HDFC OR SBI OR ICICI OR Axis OR Paytm"
         },
         "options": {}
       },
@@ -59,7 +59,7 @@
           "name": "Telegram_Scheduling Gmail OAuth2 API"
         }
       },
-      "webhookId": "b4fb5acd-db77-4978-bab6-88f57ded4231"
+      "webhookId": "12d31011-9d53-49c2-978b-807a1f3af124"
     },
     {
       "parameters": {
@@ -84,14 +84,14 @@
           "name": "Telegram_Scheduling Gmail OAuth2 API"
         }
       },
-      "webhookId": "d5e3135f-ae4c-4006-b65b-69776da8dc2c"
+      "webhookId": "dec977a3-f141-4d2a-b016-9104a4117453"
     },
     {
       "parameters": {
         "promptType": "define",
         "text": "={{ 'From: ' + ($json.from?.value?.[0]?.address || $json.from?.text || '') + '\\nSubject: ' + ($json.subject || '') + '\\nSnippet: ' + ($json.snippet || '') + '\\nBody: ' + ($json.text || $json.snippet || '') }}",
         "options": {
-          "systemMessage": "=You are a precision financial transaction extractor for an automated accounting agent.\n\nAnalyze the email subject, sender, and text body.\nExtract transaction details.\n\nReturn ONLY a JSON object (no markdown, no backticks, no code block) with these exact keys:\n{\n  \"Date\": \"YYYY-MM-DD\" (transaction date, fallback to current date if missing),\n  \"Type\": \"expense\" or \"income\",\n  \"Category\": \"Food\" | \"Groceries\" | \"Transport\" | \"Shopping\" | \"Bills\" | \"Subscription\" | \"Investment\" | \"Salary\" | \"Bank Charges\" | \"Other\",\n  \"Vendor\": \"Merchant/Bank name (e.g. Swiggy, Zomato, Amazon, Uber, HDFC Bank, SBI, OpenAI, Claude, n8n)\",\n  \"Product\": \"Short product/item name (e.g. Food Delivery, Cab ride, Monthly Subscription, Payment)\",\n  \"Amount\": 123.45 (numeric amount without symbols),\n  \"Currency\": \"INR\" (or USD/EUR),\n  \"currency_symbol\": \"\u20b9\",\n  \"is_financial\": true (false if promotional marketing or newsletter without specific money transaction)\n}"
+          "systemMessage": "=You are a precision financial transaction extractor for an automated accounting agent.\n\nAnalyze the email subject, sender, and text body.\nExtract transaction details.\n\nReturn ONLY a JSON object (no markdown, no backticks, no code block) with these exact keys:\n{\n  \"Date\": \"YYYY-MM-DD\" (transaction date, fallback to current date if missing),\n  \"Type\": \"expense\" or \"income\",\n  \"Category\": \"Food\" | \"Groceries\" | \"Transport\" | \"Shopping\" | \"Bills\" | \"Subscription\" | \"Investment\" | \"Salary\" | \"Bank Charges\" | \"Other\",\n  \"Vendor\": \"Merchant/Bank/Receiver name (e.g. Swiggy, Zomato, Amazon, Uber, HDFC Bank, SBI, Moti trading company, OpenAI, Claude, n8n)\",\n  \"Product\": \"Short product/item/purpose name (e.g. UPI Payment, Food Delivery, Cab ride, Subscription)\",\n  \"Amount\": 123.45 (numeric amount without symbols),\n  \"Currency\": \"INR\" (or USD/EUR),\n  \"currency_symbol\": \"\u20b9\",\n  \"is_financial\": true (false if promotional marketing, otp, or newsletter without specific money transfer)\n}"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -133,7 +133,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nlet raw = input.output || input.text || input.content || '';\n\nraw = String(raw)\n  .replace(/```json/g, '')\n  .replace(/```/g, '')\n  .trim();\n\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nconst jsonString = match ? match[0] : raw;\n\nlet tx = {};\ntry {\n  tx = JSON.parse(jsonString);\n} catch (e) {\n  tx = { is_financial: false };\n}\n\nconst emailData = $('Get Email Details').first().json || {};\nconst date = String(tx.Date || new Date().toISOString().slice(0, 10)).trim();\nconst month = date.slice(0, 7);\n\nlet type = 'expense';\nconst rawType = String(tx.Type || 'expense').toLowerCase().trim();\nif (['income', 'credit', 'salary', 'deposit'].some(k => rawType.includes(k))) {\n  type = 'income';\n} else if (rawType.includes('transfer')) {\n  type = 'transfer';\n} else if (['investment', 'invest', 'gold', 'stocks', 'mutual'].some(k => rawType.includes(k))) {\n  type = 'investment';\n} else {\n  type = 'expense';\n}\n\nconst category = tx.Category || 'Other';\nconst vendor = tx.Vendor || 'N/A';\nconst product = tx.Product || vendor;\nconst amount = Number(tx.Amount ?? 0);\nconst currency = tx.Currency || 'INR';\nconst currencySymbol = tx.currency_symbol || '\u20b9';\nconst whatsappNumber = '1104381256';\n\nconst duplicateKey = `${whatsappNumber}|${date}|${type}|${category.toLowerCase()}|${vendor.toLowerCase()}|${amount}`;\n\nreturn [{\n  json: {\n    is_financial: Boolean(tx.is_financial && amount > 0),\n    whatsapp_number: whatsappNumber,\n    Month: month,\n    Date: date,\n    Type: type,\n    Category: category,\n    Vendor: vendor,\n    Product: product,\n    Amount: amount,\n    Currency: currency,\n    currency_symbol: currencySymbol,\n    duplicate_key: duplicateKey,\n    source: 'email',\n    from_email: emailData.from?.value?.[0]?.address || emailData.from?.text || 'saurabh7596@gmail.com',\n    email_subject: emailData.subject || '',\n    thread_id: emailData.id || emailData.threadId || ''\n  }\n}];"
+        "jsCode": "const input = $input.first().json;\nlet raw = input.output || input.text || input.content || '';\n\nraw = String(raw)\n  .replace(/```json/g, '')\n  .replace(/```/g, '')\n  .trim();\n\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nconst jsonString = match ? match[0] : raw;\n\nlet tx = {};\ntry {\n  tx = JSON.parse(jsonString);\n} catch (e) {\n  tx = { is_financial: false };\n}\n\nconst emailData = $('Get Email Details').first().json || {};\nconst date = String(tx.Date || new Date().toISOString().slice(0, 10)).trim();\nconst month = date.slice(0, 7);\n\nlet type = 'expense';\nconst rawType = String(tx.Type || 'expense').toLowerCase().trim();\nif (['income', 'credit', 'salary', 'deposit'].some(k => rawType.includes(k))) {\n  type = 'income';\n} else if (rawType.includes('transfer')) {\n  type = 'transfer';\n} else if (['investment', 'invest', 'gold', 'stocks', 'mutual'].some(k => rawType.includes(k))) {\n  type = 'investment';\n} else {\n  type = 'expense';\n}\n\nconst category = tx.Category || 'Other';\nconst vendor = tx.Vendor || 'N/A';\nconst product = tx.Product || vendor;\nconst amount = Number(tx.Amount ?? 0);\nconst currency = tx.Currency || 'INR';\nconst currencySymbol = tx.currency_symbol || '\u20b9';\nconst whatsappNumber = '1104381256';\nconst userId = '353fb067-98ad-4cb0-960f-771efa78f777';\n\nconst duplicateKey = `${whatsappNumber}|${date}|${type}|${category.toLowerCase()}|${vendor.toLowerCase()}|${amount}`;\n\nreturn [{\n  json: {\n    is_financial: Boolean(tx.is_financial && amount > 0),\n    user_id: userId,\n    whatsapp_number: whatsappNumber,\n    Month: month,\n    Date: date,\n    Type: type,\n    Category: category,\n    Vendor: vendor,\n    Product: product,\n    Amount: amount,\n    Currency: currency,\n    currency_symbol: currencySymbol,\n    duplicate_key: duplicateKey,\n    source: 'email',\n    from_email: emailData.from?.value?.[0]?.address || emailData.from?.text || 'saurabh7596@gmail.com',\n    email_subject: emailData.subject || '',\n    thread_id: emailData.id || emailData.threadId || ''\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -201,6 +201,7 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
+            "user_id": "={{ $json.user_id }}",
             "whatsapp_number": "={{ $json.whatsapp_number }}",
             "transaction_date": "={{ $json.Date }}",
             "type": "={{ $json.Type }}",
@@ -259,7 +260,7 @@
           "name": "Personal Finance Tracker_API"
         }
       },
-      "webhookId": "7c1434ad-d1af-4199-9286-bdd06c562570"
+      "webhookId": "60c29e3d-5e66-40ef-9f85-473514a80685"
     },
     {
       "parameters": {
@@ -280,11 +281,11 @@
           "name": "Telegram_Scheduling Gmail OAuth2 API"
         }
       },
-      "webhookId": "6e20bafa-37f1-4ec4-a02f-800f95a96af3"
+      "webhookId": "3f273c12-017b-4b19-ae19-e2b8a91389cb"
     }
   ],
   "connections": {
-    "Schedule Trigger (Every 5 mins)": {
+    "Schedule Trigger (Every 2 mins)": {
       "main": [
         [
           {
@@ -410,6 +411,14 @@
       "recurrenceRuleSignatures": [
         null
       ]
+    },
+    "node:Schedule Trigger (Every 2 mins)": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
     }
   },
   "pinData": {},
@@ -438,7 +447,7 @@
     }
   ],
   "activeVersion": {
-    "versionId": "7f6af916-7ae9-4867-9c83-1ef6c0fec909",
+    "versionId": "32bea03f-4c95-4a85-9181-f36b1129a6de",
     "workflowId": "MhRwXY6ONsO75M6M",
     "nodes": [
       {
@@ -447,7 +456,7 @@
             "interval": [
               {
                 "field": "minutes",
-                "minutesInterval": 5
+                "minutesInterval": 2
               }
             ]
           }
@@ -459,18 +468,18 @@
           100
         ],
         "id": "e9ff6663-79d1-4171-88fc-ef67b7e64032",
-        "name": "Schedule Trigger (Every 5 mins)"
+        "name": "Schedule Trigger (Every 2 mins)"
       },
       {
         "parameters": {
           "operation": "getAll",
-          "limit": 10,
+          "limit": 15,
           "simple": false,
           "filters": {
             "labelIds": [
               "UNREAD"
             ],
-            "q": "debited OR credited OR spent OR payment OR transaction OR invoice OR bill OR statement OR \"credit card\" OR \"bank alert\" OR UPI OR Swiggy OR Zomato OR Amazon OR Uber"
+            "q": "debited OR credited OR spent OR payment OR transaction OR txn OR invoice OR bill OR statement OR \"credit card\" OR \"bank alert\" OR InstaAlerts OR UPI OR Swiggy OR Zomato OR Amazon OR Uber OR HDFC OR SBI OR ICICI OR Axis OR Paytm"
           },
           "options": {}
         },
@@ -488,7 +497,7 @@
             "name": "Telegram_Scheduling Gmail OAuth2 API"
           }
         },
-        "webhookId": "b4fb5acd-db77-4978-bab6-88f57ded4231"
+        "webhookId": "12d31011-9d53-49c2-978b-807a1f3af124"
       },
       {
         "parameters": {
@@ -513,14 +522,14 @@
             "name": "Telegram_Scheduling Gmail OAuth2 API"
           }
         },
-        "webhookId": "d5e3135f-ae4c-4006-b65b-69776da8dc2c"
+        "webhookId": "dec977a3-f141-4d2a-b016-9104a4117453"
       },
       {
         "parameters": {
           "promptType": "define",
           "text": "={{ 'From: ' + ($json.from?.value?.[0]?.address || $json.from?.text || '') + '\\nSubject: ' + ($json.subject || '') + '\\nSnippet: ' + ($json.snippet || '') + '\\nBody: ' + ($json.text || $json.snippet || '') }}",
           "options": {
-            "systemMessage": "=You are a precision financial transaction extractor for an automated accounting agent.\n\nAnalyze the email subject, sender, and text body.\nExtract transaction details.\n\nReturn ONLY a JSON object (no markdown, no backticks, no code block) with these exact keys:\n{\n  \"Date\": \"YYYY-MM-DD\" (transaction date, fallback to current date if missing),\n  \"Type\": \"expense\" or \"income\",\n  \"Category\": \"Food\" | \"Groceries\" | \"Transport\" | \"Shopping\" | \"Bills\" | \"Subscription\" | \"Investment\" | \"Salary\" | \"Bank Charges\" | \"Other\",\n  \"Vendor\": \"Merchant/Bank name (e.g. Swiggy, Zomato, Amazon, Uber, HDFC Bank, SBI, OpenAI, Claude, n8n)\",\n  \"Product\": \"Short product/item name (e.g. Food Delivery, Cab ride, Monthly Subscription, Payment)\",\n  \"Amount\": 123.45 (numeric amount without symbols),\n  \"Currency\": \"INR\" (or USD/EUR),\n  \"currency_symbol\": \"\u20b9\",\n  \"is_financial\": true (false if promotional marketing or newsletter without specific money transaction)\n}"
+            "systemMessage": "=You are a precision financial transaction extractor for an automated accounting agent.\n\nAnalyze the email subject, sender, and text body.\nExtract transaction details.\n\nReturn ONLY a JSON object (no markdown, no backticks, no code block) with these exact keys:\n{\n  \"Date\": \"YYYY-MM-DD\" (transaction date, fallback to current date if missing),\n  \"Type\": \"expense\" or \"income\",\n  \"Category\": \"Food\" | \"Groceries\" | \"Transport\" | \"Shopping\" | \"Bills\" | \"Subscription\" | \"Investment\" | \"Salary\" | \"Bank Charges\" | \"Other\",\n  \"Vendor\": \"Merchant/Bank/Receiver name (e.g. Swiggy, Zomato, Amazon, Uber, HDFC Bank, SBI, Moti trading company, OpenAI, Claude, n8n)\",\n  \"Product\": \"Short product/item/purpose name (e.g. UPI Payment, Food Delivery, Cab ride, Subscription)\",\n  \"Amount\": 123.45 (numeric amount without symbols),\n  \"Currency\": \"INR\" (or USD/EUR),\n  \"currency_symbol\": \"\u20b9\",\n  \"is_financial\": true (false if promotional marketing, otp, or newsletter without specific money transfer)\n}"
           }
         },
         "type": "@n8n/n8n-nodes-langchain.agent",
@@ -562,7 +571,7 @@
       },
       {
         "parameters": {
-          "jsCode": "const input = $input.first().json;\nlet raw = input.output || input.text || input.content || '';\n\nraw = String(raw)\n  .replace(/```json/g, '')\n  .replace(/```/g, '')\n  .trim();\n\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nconst jsonString = match ? match[0] : raw;\n\nlet tx = {};\ntry {\n  tx = JSON.parse(jsonString);\n} catch (e) {\n  tx = { is_financial: false };\n}\n\nconst emailData = $('Get Email Details').first().json || {};\nconst date = String(tx.Date || new Date().toISOString().slice(0, 10)).trim();\nconst month = date.slice(0, 7);\n\nlet type = 'expense';\nconst rawType = String(tx.Type || 'expense').toLowerCase().trim();\nif (['income', 'credit', 'salary', 'deposit'].some(k => rawType.includes(k))) {\n  type = 'income';\n} else if (rawType.includes('transfer')) {\n  type = 'transfer';\n} else if (['investment', 'invest', 'gold', 'stocks', 'mutual'].some(k => rawType.includes(k))) {\n  type = 'investment';\n} else {\n  type = 'expense';\n}\n\nconst category = tx.Category || 'Other';\nconst vendor = tx.Vendor || 'N/A';\nconst product = tx.Product || vendor;\nconst amount = Number(tx.Amount ?? 0);\nconst currency = tx.Currency || 'INR';\nconst currencySymbol = tx.currency_symbol || '\u20b9';\nconst whatsappNumber = '1104381256';\n\nconst duplicateKey = `${whatsappNumber}|${date}|${type}|${category.toLowerCase()}|${vendor.toLowerCase()}|${amount}`;\n\nreturn [{\n  json: {\n    is_financial: Boolean(tx.is_financial && amount > 0),\n    whatsapp_number: whatsappNumber,\n    Month: month,\n    Date: date,\n    Type: type,\n    Category: category,\n    Vendor: vendor,\n    Product: product,\n    Amount: amount,\n    Currency: currency,\n    currency_symbol: currencySymbol,\n    duplicate_key: duplicateKey,\n    source: 'email',\n    from_email: emailData.from?.value?.[0]?.address || emailData.from?.text || 'saurabh7596@gmail.com',\n    email_subject: emailData.subject || '',\n    thread_id: emailData.id || emailData.threadId || ''\n  }\n}];"
+          "jsCode": "const input = $input.first().json;\nlet raw = input.output || input.text || input.content || '';\n\nraw = String(raw)\n  .replace(/```json/g, '')\n  .replace(/```/g, '')\n  .trim();\n\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nconst jsonString = match ? match[0] : raw;\n\nlet tx = {};\ntry {\n  tx = JSON.parse(jsonString);\n} catch (e) {\n  tx = { is_financial: false };\n}\n\nconst emailData = $('Get Email Details').first().json || {};\nconst date = String(tx.Date || new Date().toISOString().slice(0, 10)).trim();\nconst month = date.slice(0, 7);\n\nlet type = 'expense';\nconst rawType = String(tx.Type || 'expense').toLowerCase().trim();\nif (['income', 'credit', 'salary', 'deposit'].some(k => rawType.includes(k))) {\n  type = 'income';\n} else if (rawType.includes('transfer')) {\n  type = 'transfer';\n} else if (['investment', 'invest', 'gold', 'stocks', 'mutual'].some(k => rawType.includes(k))) {\n  type = 'investment';\n} else {\n  type = 'expense';\n}\n\nconst category = tx.Category || 'Other';\nconst vendor = tx.Vendor || 'N/A';\nconst product = tx.Product || vendor;\nconst amount = Number(tx.Amount ?? 0);\nconst currency = tx.Currency || 'INR';\nconst currencySymbol = tx.currency_symbol || '\u20b9';\nconst whatsappNumber = '1104381256';\nconst userId = '353fb067-98ad-4cb0-960f-771efa78f777';\n\nconst duplicateKey = `${whatsappNumber}|${date}|${type}|${category.toLowerCase()}|${vendor.toLowerCase()}|${amount}`;\n\nreturn [{\n  json: {\n    is_financial: Boolean(tx.is_financial && amount > 0),\n    user_id: userId,\n    whatsapp_number: whatsappNumber,\n    Month: month,\n    Date: date,\n    Type: type,\n    Category: category,\n    Vendor: vendor,\n    Product: product,\n    Amount: amount,\n    Currency: currency,\n    currency_symbol: currencySymbol,\n    duplicate_key: duplicateKey,\n    source: 'email',\n    from_email: emailData.from?.value?.[0]?.address || emailData.from?.text || 'saurabh7596@gmail.com',\n    email_subject: emailData.subject || '',\n    thread_id: emailData.id || emailData.threadId || ''\n  }\n}];"
         },
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
@@ -630,6 +639,7 @@
           "columns": {
             "mappingMode": "defineBelow",
             "value": {
+              "user_id": "={{ $json.user_id }}",
               "whatsapp_number": "={{ $json.whatsapp_number }}",
               "transaction_date": "={{ $json.Date }}",
               "type": "={{ $json.Type }}",
@@ -688,7 +698,7 @@
             "name": "Personal Finance Tracker_API"
           }
         },
-        "webhookId": "7c1434ad-d1af-4199-9286-bdd06c562570"
+        "webhookId": "60c29e3d-5e66-40ef-9f85-473514a80685"
       },
       {
         "parameters": {
@@ -709,11 +719,11 @@
             "name": "Telegram_Scheduling Gmail OAuth2 API"
           }
         },
-        "webhookId": "6e20bafa-37f1-4ec4-a02f-800f95a96af3"
+        "webhookId": "3f273c12-017b-4b19-ae19-e2b8a91389cb"
       }
     ],
     "connections": {
-      "Schedule Trigger (Every 5 mins)": {
+      "Schedule Trigger (Every 2 mins)": {
         "main": [
           [
             {
@@ -825,16 +835,32 @@
     "name": null,
     "description": null,
     "autosaved": false,
-    "createdAt": "2026-08-22T10:10:16.654Z",
-    "updatedAt": "2026-08-22T10:10:16.654Z",
+    "createdAt": "2026-08-23T11:26:41.035Z",
+    "updatedAt": "2026-08-23T11:26:41.035Z",
     "workflowPublishHistory": [
       {
-        "id": 209,
+        "id": 219,
         "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "7f6af916-7ae9-4867-9c83-1ef6c0fec909",
+        "versionId": "32bea03f-4c95-4a85-9181-f36b1129a6de",
         "event": "activated",
         "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-22T10:10:18.137Z"
+        "createdAt": "2026-08-23T11:26:41.164Z"
+      },
+      {
+        "id": 221,
+        "workflowId": "MhRwXY6ONsO75M6M",
+        "versionId": "32bea03f-4c95-4a85-9181-f36b1129a6de",
+        "event": "activated",
+        "userId": "3afddf34-c973-4117-ac56-6949c088b352",
+        "createdAt": "2026-08-23T11:26:42.730Z"
+      },
+      {
+        "id": 220,
+        "workflowId": "MhRwXY6ONsO75M6M",
+        "versionId": "32bea03f-4c95-4a85-9181-f36b1129a6de",
+        "event": "deactivated",
+        "userId": "3afddf34-c973-4117-ac56-6949c088b352",
+        "createdAt": "2026-08-23T11:26:41.844Z"
       }
     ]
   }
