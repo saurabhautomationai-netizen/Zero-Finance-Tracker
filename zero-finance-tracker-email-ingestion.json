@@ -3,12 +3,12 @@
   "name": "Zero Finance Tracker - Email Ingestion",
   "description": null,
   "active": true,
-  "activeVersionId": "b179e52e-3e24-469f-bddb-b6796ffe3539",
+  "activeVersionId": "2c8699c5-63a0-49e8-adf0-e5813a6c9ea5",
   "createdAt": "2026-04-04T16:01:47.981Z",
-  "updatedAt": "2026-08-23T12:01:35.082Z",
+  "updatedAt": "2026-08-23T12:08:41.471Z",
   "isArchived": false,
-  "versionId": "b179e52e-3e24-469f-bddb-b6796ffe3539",
-  "versionCounter": 184,
+  "versionId": "2c8699c5-63a0-49e8-adf0-e5813a6c9ea5",
+  "versionCounter": 185,
   "sourceWorkflowId": null,
   "triggerCount": 1,
   "nodes": [
@@ -91,7 +91,7 @@
         "promptType": "define",
         "text": "={{ 'From: ' + ($json.from?.value?.[0]?.address || $json.from?.text || '') + '\\nSubject: ' + ($json.subject || '') + '\\nSnippet: ' + ($json.snippet || '') + '\\nBody: ' + ($json.text || $json.snippet || '') }}",
         "options": {
-          "systemMessage": "=You are a precision financial transaction extractor for an automated accounting agent.\n\nAnalyze the email subject, sender, and text body.\nExtract transaction details.\n\nReturn ONLY a JSON object (no markdown, no backticks, no code block) with these exact keys:\n{\n  \"Date\": \"YYYY-MM-DD\" (transaction date, fallback to current date if missing),\n  \"Type\": \"expense\" or \"income\",\n  \"Category\": \"Food\" | \"Groceries\" | \"Transport\" | \"Shopping\" | \"Bills\" | \"Subscription\" | \"Investment\" | \"Salary\" | \"Bank Charges\" | \"Other\",\n  \"Vendor\": \"Merchant/Bank/Receiver name (e.g. Swiggy, Zomato, Amazon, Uber, HDFC Bank, SBI, Moti trading company, OpenAI, Claude, n8n)\",\n  \"Product\": \"Short product/item/purpose name (e.g. UPI Payment, Food Delivery, Cab ride, Subscription)\",\n  \"Amount\": 123.45 (numeric amount without symbols),\n  \"Currency\": \"INR\" (or USD/EUR),\n  \"currency_symbol\": \"\u20b9\",\n  \"is_financial\": true (false if promotional marketing, otp, or newsletter without specific money transfer)\n}"
+          "systemMessage": "=You are a precision financial transaction and subscription extractor for an automated accounting and CFO agent.\n\nAnalyze the email subject, sender, and text body.\nExtract financial transaction and recurring subscription details.\n\nSubscription Categories to explicitly recognize under \"Subscription\":\n- Video Streaming: Netflix, Amazon Prime Video, Disney+, Hotstar, YouTube Premium, Hulu, Max, SonyLIV, Zee5, JioCinema\n- Music & Audio: Spotify, Apple Music, Audible, YouTube Music\n- Cloud & Tech: Apple iCloud+, Google One, Microsoft 365, 1Password, Bitwarden, Dropbox, AWS\n- Delivery & Memberships: Amazon Prime, Swiggy One, Zomato Gold, Zepto Pass, Blinkit, Uber One\n- Fitness & Wellness: Cult.fit, Gym memberships, ClassPass, Strava, Headspace, Calm\n- Gaming & Creative: Xbox Game Pass, PlayStation Plus, Adobe Creative Cloud, Figma, Canva\n- AI & SaaS Tools: ChatGPT Plus, Claude Pro, n8n Cloud, GitHub Copilot, Midjourney, Cursor\n\nReturn ONLY a JSON object (no markdown, no backticks, no code block) with these exact keys:\n{\n  \"Date\": \"YYYY-MM-DD\" (transaction date, fallback to current date if missing),\n  \"Type\": \"expense\" or \"income\",\n  \"Category\": \"Subscription\" | \"Food\" | \"Groceries\" | \"Transport\" | \"Shopping\" | \"Bills\" | \"Investment\" | \"Salary\" | \"Bank Charges\" | \"Other\",\n  \"Vendor\": \"Merchant/Bank/Receiver/Service name (e.g. Netflix, Spotify, Swiggy One, Google One, Anthropic, Paddle, HDFC Bank)\",\n  \"Product\": \"Short product/item/plan name (e.g. Premium Plan, Monthly Subscription, UPI Payment, Delivery Membership)\",\n  \"Amount\": 123.45 (numeric amount without currency symbols),\n  \"Currency\": \"INR\" | \"USD\" | \"EUR\" | \"GBP\",\n  \"currency_symbol\": \"\u20b9\" | \"$\" | \"\u20ac\" | \"\u00a3\",\n  \"is_financial\": true (false if promotional marketing, otp, or newsletter without money transaction)\n}"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -420,6 +420,14 @@
       "recurrenceRuleSignatures": [
         null
       ]
+    },
+    "node:Schedule Trigger (Daily at 8:00 AM)": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
     }
   },
   "pinData": {},
@@ -448,7 +456,7 @@
     }
   ],
   "activeVersion": {
-    "versionId": "b179e52e-3e24-469f-bddb-b6796ffe3539",
+    "versionId": "2c8699c5-63a0-49e8-adf0-e5813a6c9ea5",
     "workflowId": "MhRwXY6ONsO75M6M",
     "nodes": [
       {
@@ -456,8 +464,8 @@
           "rule": {
             "interval": [
               {
-                "field": "minutes",
-                "minutesInterval": 2
+                "field": "cronExpression",
+                "expression": "0 8 * * *"
               }
             ]
           }
@@ -469,7 +477,7 @@
           100
         ],
         "id": "e9ff6663-79d1-4171-88fc-ef67b7e64032",
-        "name": "Schedule Trigger (Every 2 mins)"
+        "name": "Schedule Trigger (Daily at 8:00 AM)"
       },
       {
         "parameters": {
@@ -725,17 +733,6 @@
       }
     ],
     "connections": {
-      "Schedule Trigger (Every 2 mins)": {
-        "main": [
-          [
-            {
-              "node": "Get Unread Financial Emails",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
       "Get Unread Financial Emails": {
         "main": [
           [
@@ -830,6 +827,17 @@
             }
           ]
         ]
+      },
+      "Schedule Trigger (Daily at 8:00 AM)": {
+        "main": [
+          [
+            {
+              "node": "Get Unread Financial Emails",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "nodeGroups": [],
@@ -837,32 +845,32 @@
     "name": null,
     "description": null,
     "autosaved": false,
-    "createdAt": "2026-08-23T12:01:35.084Z",
-    "updatedAt": "2026-08-23T12:01:35.084Z",
+    "createdAt": "2026-08-23T12:08:41.472Z",
+    "updatedAt": "2026-08-23T12:08:41.472Z",
     "workflowPublishHistory": [
       {
-        "id": 239,
+        "id": 243,
         "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "b179e52e-3e24-469f-bddb-b6796ffe3539",
+        "versionId": "2c8699c5-63a0-49e8-adf0-e5813a6c9ea5",
         "event": "activated",
         "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-23T12:01:35.219Z"
+        "createdAt": "2026-08-23T12:08:41.566Z"
       },
       {
-        "id": 241,
+        "id": 245,
         "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "b179e52e-3e24-469f-bddb-b6796ffe3539",
+        "versionId": "2c8699c5-63a0-49e8-adf0-e5813a6c9ea5",
         "event": "activated",
         "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-23T12:01:37.029Z"
+        "createdAt": "2026-08-23T12:08:44.130Z"
       },
       {
-        "id": 240,
+        "id": 244,
         "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "b179e52e-3e24-469f-bddb-b6796ffe3539",
+        "versionId": "2c8699c5-63a0-49e8-adf0-e5813a6c9ea5",
         "event": "deactivated",
         "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-23T12:01:36.308Z"
+        "createdAt": "2026-08-23T12:08:42.806Z"
       }
     ]
   }
