@@ -3,12 +3,12 @@
   "name": "Zero Finance Tracker - Email Ingestion",
   "description": null,
   "active": true,
-  "activeVersionId": "32bea03f-4c95-4a85-9181-f36b1129a6de",
+  "activeVersionId": "6c54bfc4-08e4-4f51-bb9a-56e1296fc9e0",
   "createdAt": "2026-04-04T16:01:47.981Z",
-  "updatedAt": "2026-08-23T11:26:41.034Z",
+  "updatedAt": "2026-08-23T11:39:51.630Z",
   "isArchived": false,
-  "versionId": "32bea03f-4c95-4a85-9181-f36b1129a6de",
-  "versionCounter": 180,
+  "versionId": "6c54bfc4-08e4-4f51-bb9a-56e1296fc9e0",
+  "versionCounter": 182,
   "sourceWorkflowId": null,
   "triggerCount": 1,
   "nodes": [
@@ -133,7 +133,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nlet raw = input.output || input.text || input.content || '';\n\nraw = String(raw)\n  .replace(/```json/g, '')\n  .replace(/```/g, '')\n  .trim();\n\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nconst jsonString = match ? match[0] : raw;\n\nlet tx = {};\ntry {\n  tx = JSON.parse(jsonString);\n} catch (e) {\n  tx = { is_financial: false };\n}\n\nconst emailData = $('Get Email Details').first().json || {};\nconst date = String(tx.Date || new Date().toISOString().slice(0, 10)).trim();\nconst month = date.slice(0, 7);\n\nlet type = 'expense';\nconst rawType = String(tx.Type || 'expense').toLowerCase().trim();\nif (['income', 'credit', 'salary', 'deposit'].some(k => rawType.includes(k))) {\n  type = 'income';\n} else if (rawType.includes('transfer')) {\n  type = 'transfer';\n} else if (['investment', 'invest', 'gold', 'stocks', 'mutual'].some(k => rawType.includes(k))) {\n  type = 'investment';\n} else {\n  type = 'expense';\n}\n\nconst category = tx.Category || 'Other';\nconst vendor = tx.Vendor || 'N/A';\nconst product = tx.Product || vendor;\nconst amount = Number(tx.Amount ?? 0);\nconst currency = tx.Currency || 'INR';\nconst currencySymbol = tx.currency_symbol || '\u20b9';\nconst whatsappNumber = '1104381256';\nconst userId = '353fb067-98ad-4cb0-960f-771efa78f777';\n\nconst duplicateKey = `${whatsappNumber}|${date}|${type}|${category.toLowerCase()}|${vendor.toLowerCase()}|${amount}`;\n\nreturn [{\n  json: {\n    is_financial: Boolean(tx.is_financial && amount > 0),\n    user_id: userId,\n    whatsapp_number: whatsappNumber,\n    Month: month,\n    Date: date,\n    Type: type,\n    Category: category,\n    Vendor: vendor,\n    Product: product,\n    Amount: amount,\n    Currency: currency,\n    currency_symbol: currencySymbol,\n    duplicate_key: duplicateKey,\n    source: 'email',\n    from_email: emailData.from?.value?.[0]?.address || emailData.from?.text || 'saurabh7596@gmail.com',\n    email_subject: emailData.subject || '',\n    thread_id: emailData.id || emailData.threadId || ''\n  }\n}];"
+        "jsCode": "const allInputs = $input.all();\nconst emailDetails = $('Get Email Details').all();\n\nreturn allInputs.map((inputItem, index) => {\n  const input = inputItem.json;\n  let raw = input.output || input.text || input.content || '';\n\n  raw = String(raw)\n    .replace(/```json/g, '')\n    .replace(/```/g, '')\n    .trim();\n\n  const match = raw.match(/\\{[\\s\\S]*\\}/);\n  const jsonString = match ? match[0] : raw;\n\n  let tx = {};\n  try {\n    tx = JSON.parse(jsonString);\n  } catch (e) {\n    tx = { is_financial: false };\n  }\n\n  const emailData = emailDetails[index]?.json || {};\n  const date = String(tx.Date || new Date().toISOString().slice(0, 10)).trim();\n  const month = date.slice(0, 7);\n\n  let type = 'expense';\n  const rawType = String(tx.Type || 'expense').toLowerCase().trim();\n  if (['income', 'credit', 'salary', 'deposit'].some(k => rawType.includes(k))) {\n    type = 'income';\n  } else if (rawType.includes('transfer')) {\n    type = 'transfer';\n  } else if (['investment', 'invest', 'gold', 'stocks', 'mutual'].some(k => rawType.includes(k))) {\n    type = 'investment';\n  } else {\n    type = 'expense';\n  }\n\n  const category = tx.Category || 'Other';\n  const vendor = tx.Vendor || 'N/A';\n  const product = tx.Product || vendor;\n  const amount = Number(tx.Amount ?? 0);\n  const currency = tx.Currency || 'INR';\n  const currencySymbol = tx.currency_symbol || '\u20b9';\n  const whatsappNumber = '1104381256';\n\n  const duplicateKey = `${whatsappNumber}|${date}|${type}|${category.toLowerCase()}|${vendor.toLowerCase()}|${amount}`;\n\n  return {\n    json: {\n      is_financial: Boolean(tx.is_financial && amount > 0),\n      whatsapp_number: whatsappNumber,\n      Month: month,\n      Date: date,\n      Type: type,\n      Category: category,\n      Vendor: vendor,\n      Product: product,\n      Amount: amount,\n      Currency: currency,\n      currency_symbol: currencySymbol,\n      duplicate_key: duplicateKey,\n      source: 'email',\n      from_email: emailData.from?.value?.[0]?.address || emailData.from?.text || 'saurabh7596@gmail.com',\n      email_subject: emailData.subject || '',\n      thread_id: emailData.id || emailData.threadId || ''\n    }\n  };\n});"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -201,7 +201,6 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "user_id": "={{ $json.user_id }}",
             "whatsapp_number": "={{ $json.whatsapp_number }}",
             "transaction_date": "={{ $json.Date }}",
             "type": "={{ $json.Type }}",
@@ -241,7 +240,7 @@
     {
       "parameters": {
         "chatId": "1104381256",
-        "text": "={{ \n  (() => {\n    const d = $('Format Email Transaction').first().json;\n    const typeBadge = d.Type === 'income' ? '\ud83d\udfe2 *Email Income Auto-Logged!*' : '\ud83d\udcec *Email Expense Auto-Logged!*';\n    return `${typeBadge}\\n\\n\ud83d\udcc5 Date: ${d.Date}\\n\ud83d\udcc1 Type: ${d.Type.toUpperCase()}\\n\ud83c\udff7\ufe0f Category: ${d.Category}\\n\ud83c\udfea Vendor: ${d.Vendor}\\n\ud83d\udecd\ufe0f Product: ${d.Product}\\n\ud83d\udcb0 Amount: ${d.currency_symbol}${d.Amount.toLocaleString('en-IN')}\\n\ud83d\udce7 From: ${d.from_email}\\n\\n\ud83d\udca1 Saved directly to your Supabase ledger.`;\n  })()\n}}",
+        "text": "={{ \n  (() => {\n    const d = $json;\n    const tDate = String(d.transaction_date || d.Date || '').slice(0, 10);\n    const tType = String(d.type || d.Type || 'expense').toUpperCase();\n    const tCategory = d.category || d.Category || 'Other';\n    const tVendor = d.vendor || d.Vendor || 'N/A';\n    const tProduct = d.product || d.Product || tVendor;\n    const tAmount = Number(d.amount ?? d.Amount ?? 0);\n    const tCurrSym = d.currency_symbol || '\u20b9';\n    const tFrom = d.notes ? d.notes.replace('Auto-ingested from: ', '') : (d.from_email || 'saurabh7596@gmail.com');\n\n    const typeBadge = tType === 'INCOME' ? '\ud83d\udfe2 *Email Income Auto-Logged!*' : '\ud83d\udcec *Email Expense Auto-Logged!*';\n\n    return `${typeBadge}\\n\\n\ud83d\udcc5 Date: ${tDate}\\n\ud83d\udcc1 Type: ${tType}\\n\ud83c\udff7\ufe0f Category: ${tCategory}\\n\ud83c\udfea Vendor: ${tVendor}\\n\ud83d\udecd\ufe0f Product: ${tProduct}\\n\ud83d\udcb0 Amount: ${tCurrSym}${tAmount.toLocaleString('en-IN')}\\n\ud83d\udce7 From: ${tFrom}\\n\\n\ud83d\udca1 Saved directly to your Supabase ledger.`;\n  })()\n}}",
         "additionalFields": {
           "appendAttribution": false
         }
@@ -265,7 +264,7 @@
     {
       "parameters": {
         "operation": "markAsRead",
-        "messageId": "={{ $('Format Email Transaction').first().json.thread_id || $('Get Email Details').item.json.id }}"
+        "messageId": "={{ $json.thread_id || $json.id }}"
       },
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
@@ -447,7 +446,7 @@
     }
   ],
   "activeVersion": {
-    "versionId": "32bea03f-4c95-4a85-9181-f36b1129a6de",
+    "versionId": "6c54bfc4-08e4-4f51-bb9a-56e1296fc9e0",
     "workflowId": "MhRwXY6ONsO75M6M",
     "nodes": [
       {
@@ -571,7 +570,7 @@
       },
       {
         "parameters": {
-          "jsCode": "const input = $input.first().json;\nlet raw = input.output || input.text || input.content || '';\n\nraw = String(raw)\n  .replace(/```json/g, '')\n  .replace(/```/g, '')\n  .trim();\n\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nconst jsonString = match ? match[0] : raw;\n\nlet tx = {};\ntry {\n  tx = JSON.parse(jsonString);\n} catch (e) {\n  tx = { is_financial: false };\n}\n\nconst emailData = $('Get Email Details').first().json || {};\nconst date = String(tx.Date || new Date().toISOString().slice(0, 10)).trim();\nconst month = date.slice(0, 7);\n\nlet type = 'expense';\nconst rawType = String(tx.Type || 'expense').toLowerCase().trim();\nif (['income', 'credit', 'salary', 'deposit'].some(k => rawType.includes(k))) {\n  type = 'income';\n} else if (rawType.includes('transfer')) {\n  type = 'transfer';\n} else if (['investment', 'invest', 'gold', 'stocks', 'mutual'].some(k => rawType.includes(k))) {\n  type = 'investment';\n} else {\n  type = 'expense';\n}\n\nconst category = tx.Category || 'Other';\nconst vendor = tx.Vendor || 'N/A';\nconst product = tx.Product || vendor;\nconst amount = Number(tx.Amount ?? 0);\nconst currency = tx.Currency || 'INR';\nconst currencySymbol = tx.currency_symbol || '\u20b9';\nconst whatsappNumber = '1104381256';\nconst userId = '353fb067-98ad-4cb0-960f-771efa78f777';\n\nconst duplicateKey = `${whatsappNumber}|${date}|${type}|${category.toLowerCase()}|${vendor.toLowerCase()}|${amount}`;\n\nreturn [{\n  json: {\n    is_financial: Boolean(tx.is_financial && amount > 0),\n    user_id: userId,\n    whatsapp_number: whatsappNumber,\n    Month: month,\n    Date: date,\n    Type: type,\n    Category: category,\n    Vendor: vendor,\n    Product: product,\n    Amount: amount,\n    Currency: currency,\n    currency_symbol: currencySymbol,\n    duplicate_key: duplicateKey,\n    source: 'email',\n    from_email: emailData.from?.value?.[0]?.address || emailData.from?.text || 'saurabh7596@gmail.com',\n    email_subject: emailData.subject || '',\n    thread_id: emailData.id || emailData.threadId || ''\n  }\n}];"
+          "jsCode": "const allInputs = $input.all();\nconst emailDetails = $('Get Email Details').all();\n\nreturn allInputs.map((inputItem, index) => {\n  const input = inputItem.json;\n  let raw = input.output || input.text || input.content || '';\n\n  raw = String(raw)\n    .replace(/```json/g, '')\n    .replace(/```/g, '')\n    .trim();\n\n  const match = raw.match(/\\{[\\s\\S]*\\}/);\n  const jsonString = match ? match[0] : raw;\n\n  let tx = {};\n  try {\n    tx = JSON.parse(jsonString);\n  } catch (e) {\n    tx = { is_financial: false };\n  }\n\n  const emailData = emailDetails[index]?.json || {};\n  const date = String(tx.Date || new Date().toISOString().slice(0, 10)).trim();\n  const month = date.slice(0, 7);\n\n  let type = 'expense';\n  const rawType = String(tx.Type || 'expense').toLowerCase().trim();\n  if (['income', 'credit', 'salary', 'deposit'].some(k => rawType.includes(k))) {\n    type = 'income';\n  } else if (rawType.includes('transfer')) {\n    type = 'transfer';\n  } else if (['investment', 'invest', 'gold', 'stocks', 'mutual'].some(k => rawType.includes(k))) {\n    type = 'investment';\n  } else {\n    type = 'expense';\n  }\n\n  const category = tx.Category || 'Other';\n  const vendor = tx.Vendor || 'N/A';\n  const product = tx.Product || vendor;\n  const amount = Number(tx.Amount ?? 0);\n  const currency = tx.Currency || 'INR';\n  const currencySymbol = tx.currency_symbol || '\u20b9';\n  const whatsappNumber = '1104381256';\n\n  const duplicateKey = `${whatsappNumber}|${date}|${type}|${category.toLowerCase()}|${vendor.toLowerCase()}|${amount}`;\n\n  return {\n    json: {\n      is_financial: Boolean(tx.is_financial && amount > 0),\n      whatsapp_number: whatsappNumber,\n      Month: month,\n      Date: date,\n      Type: type,\n      Category: category,\n      Vendor: vendor,\n      Product: product,\n      Amount: amount,\n      Currency: currency,\n      currency_symbol: currencySymbol,\n      duplicate_key: duplicateKey,\n      source: 'email',\n      from_email: emailData.from?.value?.[0]?.address || emailData.from?.text || 'saurabh7596@gmail.com',\n      email_subject: emailData.subject || '',\n      thread_id: emailData.id || emailData.threadId || ''\n    }\n  };\n});"
         },
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
@@ -639,7 +638,6 @@
           "columns": {
             "mappingMode": "defineBelow",
             "value": {
-              "user_id": "={{ $json.user_id }}",
               "whatsapp_number": "={{ $json.whatsapp_number }}",
               "transaction_date": "={{ $json.Date }}",
               "type": "={{ $json.Type }}",
@@ -679,7 +677,7 @@
       {
         "parameters": {
           "chatId": "1104381256",
-          "text": "={{ \n  (() => {\n    const d = $('Format Email Transaction').first().json;\n    const typeBadge = d.Type === 'income' ? '\ud83d\udfe2 *Email Income Auto-Logged!*' : '\ud83d\udcec *Email Expense Auto-Logged!*';\n    return `${typeBadge}\\n\\n\ud83d\udcc5 Date: ${d.Date}\\n\ud83d\udcc1 Type: ${d.Type.toUpperCase()}\\n\ud83c\udff7\ufe0f Category: ${d.Category}\\n\ud83c\udfea Vendor: ${d.Vendor}\\n\ud83d\udecd\ufe0f Product: ${d.Product}\\n\ud83d\udcb0 Amount: ${d.currency_symbol}${d.Amount.toLocaleString('en-IN')}\\n\ud83d\udce7 From: ${d.from_email}\\n\\n\ud83d\udca1 Saved directly to your Supabase ledger.`;\n  })()\n}}",
+          "text": "={{ \n  (() => {\n    const d = $json;\n    const typeBadge = d.Type === 'income' ? '\ud83d\udfe2 *Email Income Auto-Logged!*' : '\ud83d\udcec *Email Expense Auto-Logged!*';\n    return `${typeBadge}\\n\\n\ud83d\udcc5 Date: ${d.Date}\\n\ud83d\udcc1 Type: ${d.Type.toUpperCase()}\\n\ud83c\udff7\ufe0f Category: ${d.Category}\\n\ud83c\udfea Vendor: ${d.Vendor}\\n\ud83d\udecd\ufe0f Product: ${d.Product}\\n\ud83d\udcb0 Amount: ${d.currency_symbol}${d.Amount.toLocaleString('en-IN')}\\n\ud83d\udce7 From: ${d.from_email}\\n\\n\ud83d\udca1 Saved directly to your Supabase ledger.`;\n  })()\n}}",
           "additionalFields": {
             "appendAttribution": false
           }
@@ -703,7 +701,7 @@
       {
         "parameters": {
           "operation": "markAsRead",
-          "messageId": "={{ $('Format Email Transaction').first().json.thread_id || $('Get Email Details').item.json.id }}"
+          "messageId": "={{ $json.thread_id || $json.id }}"
         },
         "type": "n8n-nodes-base.gmail",
         "typeVersion": 2.2,
@@ -835,32 +833,32 @@
     "name": null,
     "description": null,
     "autosaved": false,
-    "createdAt": "2026-08-23T11:26:41.035Z",
-    "updatedAt": "2026-08-23T11:26:41.035Z",
+    "createdAt": "2026-08-23T11:39:51.631Z",
+    "updatedAt": "2026-08-23T11:39:51.631Z",
     "workflowPublishHistory": [
       {
-        "id": 219,
+        "id": 231,
         "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "32bea03f-4c95-4a85-9181-f36b1129a6de",
+        "versionId": "6c54bfc4-08e4-4f51-bb9a-56e1296fc9e0",
         "event": "activated",
         "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-23T11:26:41.164Z"
+        "createdAt": "2026-08-23T11:39:51.772Z"
       },
       {
-        "id": 221,
+        "id": 233,
         "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "32bea03f-4c95-4a85-9181-f36b1129a6de",
+        "versionId": "6c54bfc4-08e4-4f51-bb9a-56e1296fc9e0",
         "event": "activated",
         "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-23T11:26:42.730Z"
+        "createdAt": "2026-08-23T11:39:53.762Z"
       },
       {
-        "id": 220,
+        "id": 232,
         "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "32bea03f-4c95-4a85-9181-f36b1129a6de",
+        "versionId": "6c54bfc4-08e4-4f51-bb9a-56e1296fc9e0",
         "event": "deactivated",
         "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-23T11:26:41.844Z"
+        "createdAt": "2026-08-23T11:39:52.493Z"
       }
     ]
   }
