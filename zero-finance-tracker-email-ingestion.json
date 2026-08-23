@@ -3,12 +3,12 @@
   "name": "Zero Finance Tracker - Email Ingestion",
   "description": null,
   "active": true,
-  "activeVersionId": "6c54bfc4-08e4-4f51-bb9a-56e1296fc9e0",
+  "activeVersionId": "39c5c095-53ea-4086-8ef1-f9069fd9f924",
   "createdAt": "2026-04-04T16:01:47.981Z",
-  "updatedAt": "2026-08-23T11:39:51.630Z",
+  "updatedAt": "2026-08-23T11:41:01.586Z",
   "isArchived": false,
-  "versionId": "6c54bfc4-08e4-4f51-bb9a-56e1296fc9e0",
-  "versionCounter": 182,
+  "versionId": "39c5c095-53ea-4086-8ef1-f9069fd9f924",
+  "versionCounter": 183,
   "sourceWorkflowId": null,
   "triggerCount": 1,
   "nodes": [
@@ -259,12 +259,13 @@
           "name": "Personal Finance Tracker_API"
         }
       },
-      "webhookId": "60c29e3d-5e66-40ef-9f85-473514a80685"
+      "webhookId": "60c29e3d-5e66-40ef-9f85-473514a80685",
+      "continueOnFail": true
     },
     {
       "parameters": {
         "operation": "markAsRead",
-        "messageId": "={{ $json.thread_id || $json.id }}"
+        "messageId": "={{ $('Get Email Details').item.json.id || $('Get Email Details').item.json.threadId }}"
       },
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
@@ -280,7 +281,8 @@
           "name": "Telegram_Scheduling Gmail OAuth2 API"
         }
       },
-      "webhookId": "3f273c12-017b-4b19-ae19-e2b8a91389cb"
+      "webhookId": "3f273c12-017b-4b19-ae19-e2b8a91389cb",
+      "continueOnFail": true
     }
   ],
   "connections": {
@@ -446,7 +448,7 @@
     }
   ],
   "activeVersion": {
-    "versionId": "6c54bfc4-08e4-4f51-bb9a-56e1296fc9e0",
+    "versionId": "39c5c095-53ea-4086-8ef1-f9069fd9f924",
     "workflowId": "MhRwXY6ONsO75M6M",
     "nodes": [
       {
@@ -677,7 +679,7 @@
       {
         "parameters": {
           "chatId": "1104381256",
-          "text": "={{ \n  (() => {\n    const d = $json;\n    const typeBadge = d.Type === 'income' ? '\ud83d\udfe2 *Email Income Auto-Logged!*' : '\ud83d\udcec *Email Expense Auto-Logged!*';\n    return `${typeBadge}\\n\\n\ud83d\udcc5 Date: ${d.Date}\\n\ud83d\udcc1 Type: ${d.Type.toUpperCase()}\\n\ud83c\udff7\ufe0f Category: ${d.Category}\\n\ud83c\udfea Vendor: ${d.Vendor}\\n\ud83d\udecd\ufe0f Product: ${d.Product}\\n\ud83d\udcb0 Amount: ${d.currency_symbol}${d.Amount.toLocaleString('en-IN')}\\n\ud83d\udce7 From: ${d.from_email}\\n\\n\ud83d\udca1 Saved directly to your Supabase ledger.`;\n  })()\n}}",
+          "text": "={{ \n  (() => {\n    const d = $json;\n    const tDate = String(d.transaction_date || d.Date || '').slice(0, 10);\n    const tType = String(d.type || d.Type || 'expense').toUpperCase();\n    const tCategory = d.category || d.Category || 'Other';\n    const tVendor = d.vendor || d.Vendor || 'N/A';\n    const tProduct = d.product || d.Product || tVendor;\n    const tAmount = Number(d.amount ?? d.Amount ?? 0);\n    const tCurrSym = d.currency_symbol || '\u20b9';\n    const tFrom = d.notes ? d.notes.replace('Auto-ingested from: ', '') : (d.from_email || 'saurabh7596@gmail.com');\n\n    const typeBadge = tType === 'INCOME' ? '\ud83d\udfe2 *Email Income Auto-Logged!*' : '\ud83d\udcec *Email Expense Auto-Logged!*';\n\n    return `${typeBadge}\\n\\n\ud83d\udcc5 Date: ${tDate}\\n\ud83d\udcc1 Type: ${tType}\\n\ud83c\udff7\ufe0f Category: ${tCategory}\\n\ud83c\udfea Vendor: ${tVendor}\\n\ud83d\udecd\ufe0f Product: ${tProduct}\\n\ud83d\udcb0 Amount: ${tCurrSym}${tAmount.toLocaleString('en-IN')}\\n\ud83d\udce7 From: ${tFrom}\\n\\n\ud83d\udca1 Saved directly to your Supabase ledger.`;\n  })()\n}}",
           "additionalFields": {
             "appendAttribution": false
           }
@@ -833,32 +835,32 @@
     "name": null,
     "description": null,
     "autosaved": false,
-    "createdAt": "2026-08-23T11:39:51.631Z",
-    "updatedAt": "2026-08-23T11:39:51.631Z",
+    "createdAt": "2026-08-23T11:41:01.587Z",
+    "updatedAt": "2026-08-23T11:41:01.587Z",
     "workflowPublishHistory": [
       {
-        "id": 231,
+        "id": 235,
         "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "6c54bfc4-08e4-4f51-bb9a-56e1296fc9e0",
+        "versionId": "39c5c095-53ea-4086-8ef1-f9069fd9f924",
         "event": "activated",
         "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-23T11:39:51.772Z"
+        "createdAt": "2026-08-23T11:41:01.712Z"
       },
       {
-        "id": 233,
+        "id": 237,
         "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "6c54bfc4-08e4-4f51-bb9a-56e1296fc9e0",
+        "versionId": "39c5c095-53ea-4086-8ef1-f9069fd9f924",
         "event": "activated",
         "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-23T11:39:53.762Z"
+        "createdAt": "2026-08-23T11:41:03.101Z"
       },
       {
-        "id": 232,
+        "id": 236,
         "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "6c54bfc4-08e4-4f51-bb9a-56e1296fc9e0",
+        "versionId": "39c5c095-53ea-4086-8ef1-f9069fd9f924",
         "event": "deactivated",
         "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-23T11:39:52.493Z"
+        "createdAt": "2026-08-23T11:41:02.395Z"
       }
     ]
   }
