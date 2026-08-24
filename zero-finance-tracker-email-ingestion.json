@@ -3,12 +3,12 @@
   "name": "Zero Finance Tracker - Email Ingestion",
   "description": null,
   "active": true,
-  "activeVersionId": "36f80052-a289-4aa3-b0f4-93e56013fa49",
+  "activeVersionId": "49b8c9bb-017b-4ab6-99bb-4551d342be3c",
   "createdAt": "2026-04-04T16:01:47.981Z",
-  "updatedAt": "2026-08-23T12:40:43.638Z",
+  "updatedAt": "2026-08-24T09:43:08.503Z",
   "isArchived": false,
-  "versionId": "36f80052-a289-4aa3-b0f4-93e56013fa49",
-  "versionCounter": 186,
+  "versionId": "49b8c9bb-017b-4ab6-99bb-4551d342be3c",
+  "versionCounter": 187,
   "sourceWorkflowId": null,
   "triggerCount": 1,
   "nodes": [
@@ -35,10 +35,10 @@
     {
       "parameters": {
         "operation": "getAll",
-        "limit": 15,
+        "limit": 25,
         "simple": false,
         "filters": {
-          "q": "(debited OR credited OR spent OR payment OR transaction OR txn OR invoice OR bill OR statement OR \"credit card\" OR \"bank alert\" OR InstaAlerts OR UPI OR Swiggy OR Zomato OR Amazon OR Uber OR HDFC OR SBI OR ICICI OR Axis OR Paytm OR Anthropic OR Paddle) newer_than:2d"
+          "q": "from:(hdfcbank OR icicibank OR sbi OR axisbank OR paytm OR razorpay OR swiggy OR zomato OR amazon OR apple OR google OR netflix OR spotify OR anthropic OR paddle OR github OR openai) OR subject:(debited OR credited OR \"UPI txn\" OR InstaAlerts OR statement OR invoice OR receipt OR \"spent on\")"
         },
         "options": {}
       },
@@ -453,7 +453,7 @@
     }
   ],
   "activeVersion": {
-    "versionId": "36f80052-a289-4aa3-b0f4-93e56013fa49",
+    "versionId": "49b8c9bb-017b-4ab6-99bb-4551d342be3c",
     "workflowId": "MhRwXY6ONsO75M6M",
     "nodes": [
       {
@@ -461,8 +461,8 @@
           "rule": {
             "interval": [
               {
-                "field": "cronExpression",
-                "expression": "0 8 * * *"
+                "field": "minutes",
+                "minutesInterval": 5
               }
             ]
           }
@@ -474,7 +474,7 @@
           100
         ],
         "id": "e9ff6663-79d1-4171-88fc-ef67b7e64032",
-        "name": "Schedule Trigger (Daily at 8:00 AM)"
+        "name": "Schedule Trigger (Every 5 mins)"
       },
       {
         "parameters": {
@@ -482,10 +482,7 @@
           "limit": 15,
           "simple": false,
           "filters": {
-            "labelIds": [
-              "UNREAD"
-            ],
-            "q": "debited OR credited OR spent OR payment OR transaction OR txn OR invoice OR bill OR statement OR \"credit card\" OR \"bank alert\" OR InstaAlerts OR UPI OR Swiggy OR Zomato OR Amazon OR Uber OR HDFC OR SBI OR ICICI OR Axis OR Paytm"
+            "q": "(debited OR credited OR spent OR payment OR transaction OR txn OR invoice OR bill OR statement OR \"credit card\" OR \"bank alert\" OR InstaAlerts OR UPI OR Swiggy OR Zomato OR Amazon OR Uber OR HDFC OR SBI OR ICICI OR Axis OR Paytm OR Anthropic OR Paddle) newer_than:2d"
           },
           "options": {}
         },
@@ -496,7 +493,7 @@
           100
         ],
         "id": "33c66a31-bdfc-4cf8-a979-3d07a164b38f",
-        "name": "Get Unread Financial Emails",
+        "name": "Get Financial Emails (Recent)",
         "credentials": {
           "gmailOAuth2": {
             "id": "58sdu9EACCnBXwex",
@@ -577,7 +574,7 @@
       },
       {
         "parameters": {
-          "jsCode": "const allInputs = $input.all();\nconst emailDetails = $('Get Email Details').all();\n\nreturn allInputs.map((inputItem, index) => {\n  const input = inputItem.json;\n  let raw = input.output || input.text || input.content || '';\n\n  raw = String(raw)\n    .replace(/```json/g, '')\n    .replace(/```/g, '')\n    .trim();\n\n  const match = raw.match(/\\{[\\s\\S]*\\}/);\n  const jsonString = match ? match[0] : raw;\n\n  let tx = {};\n  try {\n    tx = JSON.parse(jsonString);\n  } catch (e) {\n    tx = { is_financial: false };\n  }\n\n  const emailData = emailDetails[index]?.json || {};\n  const date = String(tx.Date || new Date().toISOString().slice(0, 10)).trim();\n  const month = date.slice(0, 7);\n\n  let type = 'expense';\n  const rawType = String(tx.Type || 'expense').toLowerCase().trim();\n  if (['income', 'credit', 'salary', 'deposit'].some(k => rawType.includes(k))) {\n    type = 'income';\n  } else if (rawType.includes('transfer')) {\n    type = 'transfer';\n  } else if (['investment', 'invest', 'gold', 'stocks', 'mutual'].some(k => rawType.includes(k))) {\n    type = 'investment';\n  } else {\n    type = 'expense';\n  }\n\n  const category = tx.Category || 'Other';\n  const vendor = tx.Vendor || 'N/A';\n  const product = tx.Product || vendor;\n  const amount = Number(tx.Amount ?? 0);\n  const currency = tx.Currency || 'INR';\n  const currencySymbol = tx.currency_symbol || '\u20b9';\n  const whatsappNumber = '1104381256';\n\n  const duplicateKey = `${whatsappNumber}|${date}|${type}|${category.toLowerCase()}|${vendor.toLowerCase()}|${amount}`;\n\n  return {\n    json: {\n      is_financial: Boolean(tx.is_financial && amount > 0),\n      whatsapp_number: whatsappNumber,\n      Month: month,\n      Date: date,\n      Type: type,\n      Category: category,\n      Vendor: vendor,\n      Product: product,\n      Amount: amount,\n      Currency: currency,\n      currency_symbol: currencySymbol,\n      duplicate_key: duplicateKey,\n      source: 'email',\n      from_email: emailData.from?.value?.[0]?.address || emailData.from?.text || 'saurabh7596@gmail.com',\n      email_subject: emailData.subject || '',\n      thread_id: emailData.id || emailData.threadId || ''\n    }\n  };\n});"
+          "jsCode": "const allInputs = $input.all();\nconst emailDetails = $('Get Email Details').all();\n\nreturn allInputs.map((inputItem, index) => {\n  const input = inputItem.json;\n  let raw = input.output || input.text || input.content || '';\n\n  raw = String(raw)\n    .replace(/```json/g, '')\n    .replace(/```/g, '')\n    .trim();\n\n  const match = raw.match(/\\{[\\s\\S]*\\}/);\n  const jsonString = match ? match[0] : raw;\n\n  let tx = {};\n  try {\n    tx = JSON.parse(jsonString);\n  } catch (e) {\n    tx = { is_financial: false };\n  }\n\n  const emailData = emailDetails[index]?.json || {};\n  const date = String(tx.Date || new Date().toISOString().slice(0, 10)).trim();\n  const month = date.slice(0, 7);\n\n  let type = 'expense';\n  const rawType = String(tx.Type || 'expense').toLowerCase().trim();\n  if (['income', 'credit', 'salary', 'deposit'].some(k => rawType.includes(k))) {\n    type = 'income';\n  } else if (rawType.includes('transfer')) {\n    type = 'transfer';\n  } else if (['investment', 'invest', 'gold', 'stocks', 'mutual'].some(k => rawType.includes(k))) {\n    type = 'investment';\n  } else {\n    type = 'expense';\n  }\n\n  const category = tx.Category || 'Other';\n  const vendor = tx.Vendor || 'N/A';\n  const product = tx.Product || vendor;\n  const amount = Number(tx.Amount ?? 0);\n  const currency = tx.Currency || 'INR';\n  const currencySymbol = tx.currency_symbol || '\u20b9';\n  const whatsappNumber = '1104381256';\n  const emailId = emailData.id || emailData.threadId || '';\n\n  const duplicateKey = `${whatsappNumber}|${date}|${type}|${category.toLowerCase()}|${vendor.toLowerCase()}|${amount}`;\n\n  return {\n    json: {\n      is_financial: Boolean(tx.is_financial && amount > 0),\n      whatsapp_number: whatsappNumber,\n      Month: month,\n      Date: date,\n      Type: type,\n      Category: category,\n      Vendor: vendor,\n      Product: product,\n      Amount: amount,\n      Currency: currency,\n      currency_symbol: currencySymbol,\n      duplicate_key: duplicateKey,\n      source: 'email',\n      from_email: emailData.from?.value?.[0]?.address || emailData.from?.text || 'saurabh7596@gmail.com',\n      email_subject: emailData.subject || '',\n      thread_id: emailId\n    }\n  };\n});"
         },
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
@@ -730,17 +727,6 @@
       }
     ],
     "connections": {
-      "Get Unread Financial Emails": {
-        "main": [
-          [
-            {
-              "node": "Get Email Details",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
       "Get Email Details": {
         "main": [
           [
@@ -825,11 +811,22 @@
           ]
         ]
       },
-      "Schedule Trigger (Daily at 8:00 AM)": {
+      "Schedule Trigger (Every 5 mins)": {
         "main": [
           [
             {
-              "node": "Get Unread Financial Emails",
+              "node": "Get Financial Emails (Recent)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Financial Emails (Recent)": {
+        "main": [
+          [
+            {
+              "node": "Get Email Details",
               "type": "main",
               "index": 0
             }
@@ -842,32 +839,32 @@
     "name": null,
     "description": null,
     "autosaved": false,
-    "createdAt": "2026-08-23T12:40:43.639Z",
-    "updatedAt": "2026-08-23T12:40:43.639Z",
+    "createdAt": "2026-08-24T09:43:08.505Z",
+    "updatedAt": "2026-08-24T09:43:08.505Z",
     "workflowPublishHistory": [
       {
-        "id": 251,
+        "id": 260,
         "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "36f80052-a289-4aa3-b0f4-93e56013fa49",
+        "versionId": "49b8c9bb-017b-4ab6-99bb-4551d342be3c",
         "event": "activated",
         "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-23T12:40:43.731Z"
+        "createdAt": "2026-08-24T09:43:08.655Z"
       },
       {
-        "id": 253,
+        "id": 262,
         "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "36f80052-a289-4aa3-b0f4-93e56013fa49",
+        "versionId": "49b8c9bb-017b-4ab6-99bb-4551d342be3c",
         "event": "activated",
         "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-23T12:40:45.469Z"
+        "createdAt": "2026-08-24T09:43:10.646Z"
       },
       {
-        "id": 252,
+        "id": 261,
         "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "36f80052-a289-4aa3-b0f4-93e56013fa49",
+        "versionId": "49b8c9bb-017b-4ab6-99bb-4551d342be3c",
         "event": "deactivated",
         "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-23T12:40:44.408Z"
+        "createdAt": "2026-08-24T09:43:09.646Z"
       }
     ]
   }
