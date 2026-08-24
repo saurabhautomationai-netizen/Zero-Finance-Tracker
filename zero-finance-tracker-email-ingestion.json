@@ -1,16 +1,5 @@
 {
-  "id": "MhRwXY6ONsO75M6M",
   "name": "Zero Finance Tracker - Email Ingestion",
-  "description": null,
-  "active": true,
-  "activeVersionId": "4dd5431f-630f-451c-841e-355b598526b8",
-  "createdAt": "2026-04-04T16:01:47.981Z",
-  "updatedAt": "2026-08-24T09:46:24.887Z",
-  "isArchived": false,
-  "versionId": "4dd5431f-630f-451c-841e-355b598526b8",
-  "versionCounter": 188,
-  "sourceWorkflowId": null,
-  "triggerCount": 1,
   "nodes": [
     {
       "parameters": {
@@ -35,10 +24,10 @@
     {
       "parameters": {
         "operation": "getAll",
-        "limit": 25,
+        "limit": 20,
         "simple": false,
         "filters": {
-          "q": "(from:(hdfcbank OR icicibank OR sbi OR axisbank OR paytm OR razorpay OR swiggy OR zomato OR amazon OR apple OR google OR netflix OR spotify OR anthropic OR paddle OR github OR openai) OR subject:(debited OR credited OR \"UPI txn\" OR InstaAlerts OR statement OR invoice OR receipt OR \"spent on\")) newer_than:14d"
+          "q": "(from:(hdfcbank OR icicibank OR sbi OR axisbank OR paytm OR razorpay OR swiggy OR zomato OR amazon OR apple OR google OR netflix OR spotify OR anthropic OR paddle OR github OR openai) OR subject:(debited OR credited OR \"UPI txn\" OR InstaAlerts OR statement OR invoice OR receipt OR \"spent on\")) newer_than:2d"
         },
         "options": {}
       },
@@ -49,14 +38,13 @@
         100
       ],
       "id": "33c66a31-bdfc-4cf8-a979-3d07a164b38f",
-      "name": "Get Financial Emails (Recent)",
+      "name": "Get Financial Emails (2-Day Window)",
       "credentials": {
         "gmailOAuth2": {
           "id": "58sdu9EACCnBXwex",
           "name": "Telegram_Scheduling Gmail OAuth2 API"
         }
-      },
-      "webhookId": "12d31011-9d53-49c2-978b-807a1f3af124"
+      }
     },
     {
       "parameters": {
@@ -80,15 +68,14 @@
           "id": "58sdu9EACCnBXwex",
           "name": "Telegram_Scheduling Gmail OAuth2 API"
         }
-      },
-      "webhookId": "dec977a3-f141-4d2a-b016-9104a4117453"
+      }
     },
     {
       "parameters": {
         "promptType": "define",
         "text": "={{ 'From: ' + ($json.from?.value?.[0]?.address || $json.from?.text || '') + '\\nSubject: ' + ($json.subject || '') + '\\nSnippet: ' + ($json.snippet || '') + '\\nBody: ' + ($json.text || $json.snippet || '') }}",
         "options": {
-          "systemMessage": "=You are a precision financial transaction and subscription extractor for an automated accounting and CFO agent.\n\nAnalyze the email subject, sender, and text body.\nExtract financial transaction and recurring subscription details.\n\nSubscription Categories to explicitly recognize under \"Subscription\":\n- Video Streaming: Netflix, Amazon Prime Video, Disney+, Hotstar, YouTube Premium, Hulu, Max, SonyLIV, Zee5, JioCinema\n- Music & Audio: Spotify, Apple Music, Audible, YouTube Music\n- Cloud & Tech: Apple iCloud+, Google One, Microsoft 365, 1Password, Bitwarden, Dropbox, AWS\n- Delivery & Memberships: Amazon Prime, Swiggy One, Zomato Gold, Zepto Pass, Blinkit, Uber One\n- Fitness & Wellness: Cult.fit, Gym memberships, ClassPass, Strava, Headspace, Calm\n- Gaming & Creative: Xbox Game Pass, PlayStation Plus, Adobe Creative Cloud, Figma, Canva\n- AI & SaaS Tools: ChatGPT Plus, Claude Pro, n8n Cloud, GitHub Copilot, Midjourney, Cursor\n\nReturn ONLY a JSON object (no markdown, no backticks, no code block) with these exact keys:\n{\n  \"Date\": \"YYYY-MM-DD\" (transaction date, fallback to current date if missing),\n  \"Type\": \"expense\" or \"income\",\n  \"Category\": \"Subscription\" | \"Food\" | \"Groceries\" | \"Transport\" | \"Shopping\" | \"Bills\" | \"Investment\" | \"Salary\" | \"Bank Charges\" | \"Other\",\n  \"Vendor\": \"Merchant/Bank/Receiver/Service name (e.g. Netflix, Spotify, Swiggy One, Google One, Anthropic, Paddle, HDFC Bank)\",\n  \"Product\": \"Short product/item/plan name (e.g. Premium Plan, Monthly Subscription, UPI Payment, Delivery Membership)\",\n  \"Amount\": 123.45 (numeric amount without currency symbols),\n  \"Currency\": \"INR\" | \"USD\" | \"EUR\" | \"GBP\",\n  \"currency_symbol\": \"\u20b9\" | \"$\" | \"\u20ac\" | \"\u00a3\",\n  \"is_financial\": true (false if promotional marketing, otp, or newsletter without money transaction)\n}"
+          "systemMessage": "=You are a precision financial transaction and subscription extractor for an automated accounting agent.\n\nAnalyze the email subject, sender, and text body.\nExtract financial transaction and recurring subscription details.\n\nSubscription Categories to explicitly recognize under \"Subscription\":\n- Video Streaming: Netflix, Amazon Prime Video, Disney+, Hotstar, YouTube Premium, Hulu, Max, SonyLIV, Zee5, JioCinema\n- Music & Audio: Spotify, Apple Music, Audible, YouTube Music\n- Cloud & Tech: Apple iCloud+, Google One, Microsoft 365, 1Password, Bitwarden, Dropbox, AWS\n- Delivery & Memberships: Amazon Prime, Swiggy One, Zomato Gold, Zepto Pass, Blinkit, Uber One\n- Fitness & Wellness: Cult.fit, Gym memberships, ClassPass, Strava, Headspace, Calm\n- Gaming & Creative: Xbox Game Pass, PlayStation Plus, Adobe Creative Cloud, Figma, Canva\n- AI & SaaS Tools: ChatGPT Plus, Claude Pro, n8n Cloud, GitHub Copilot, Midjourney, Cursor\n\nReturn ONLY a JSON object (no markdown, no backticks, no code block) with these exact keys:\n{\n  \"Date\": \"YYYY-MM-DD\" (transaction date, fallback to current date if missing),\n  \"Type\": \"expense\" or \"income\",\n  \"Category\": \"Subscription\" | \"Food\" | \"Groceries\" | \"Transport\" | \"Shopping\" | \"Bills\" | \"Investment\" | \"Salary\" | \"Bank Charges\" | \"Other\",\n  \"Vendor\": \"Merchant/Bank/Receiver/Service name (e.g. Netflix, Spotify, Swiggy One, Google One, Anthropic, Paddle, HDFC Bank, Moti trading company)\",\n  \"Product\": \"Short product/item/plan name (e.g. Premium Plan, Monthly Subscription, UPI Payment, Delivery Membership)\",\n  \"Amount\": 123.45 (numeric amount without currency symbols),\n  \"Currency\": \"INR\" | \"USD\" | \"EUR\" | \"GBP\",\n  \"currency_symbol\": \"\u20b9\" | \"$\" | \"\u20ac\" | \"\u00a3\",\n  \"is_financial\": true (false if promotional marketing, otp, or newsletter without money transaction)\n}"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -130,7 +117,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const allInputs = $input.all();\nconst emailDetails = $('Get Email Details').all();\n\nreturn allInputs.map((inputItem, index) => {\n  const input = inputItem.json;\n  let raw = input.output || input.text || input.content || '';\n\n  raw = String(raw)\n    .replace(/```json/g, '')\n    .replace(/```/g, '')\n    .trim();\n\n  const match = raw.match(/\\{[\\s\\S]*\\}/);\n  const jsonString = match ? match[0] : raw;\n\n  let tx = {};\n  try {\n    tx = JSON.parse(jsonString);\n  } catch (e) {\n    tx = { is_financial: false };\n  }\n\n  const emailData = emailDetails[index]?.json || {};\n  \n  // Enforce 2026 current year standard\n  let date = String(tx.Date || new Date().toISOString().slice(0, 10)).trim();\n  if (date.startsWith('2023') || date.startsWith('2024') || date.startsWith('2025') || date.includes('Thu') || date.includes('Wed') || date.length < 10) {\n    date = new Date().toISOString().slice(0, 10);\n  }\n  const month = date.slice(0, 7);\n\n  let type = 'expense';\n  const rawType = String(tx.Type || 'expense').toLowerCase().trim();\n  if (['income', 'credit', 'salary', 'deposit'].some(k => rawType.includes(k))) {\n    type = 'income';\n  } else if (rawType.includes('transfer')) {\n    type = 'transfer';\n  } else if (['investment', 'invest', 'gold', 'stocks', 'mutual'].some(k => rawType.includes(k))) {\n    type = 'investment';\n  } else {\n    type = 'expense';\n  }\n\n  const category = tx.Category || 'Other';\n  const vendor = tx.Vendor || 'N/A';\n  const product = tx.Product || vendor;\n  const amount = Number(tx.Amount ?? 0);\n  const currency = tx.Currency || 'INR';\n  const currencySymbol = tx.currency_symbol || '\u20b9';\n  const whatsappNumber = '1104381256';\n  const emailId = emailData.id || emailData.threadId || '';\n\n  const duplicateKey = `${whatsappNumber}|${date}|${type}|${category.toLowerCase()}|${vendor.toLowerCase()}|${amount}`;\n\n  return {\n    json: {\n      is_financial: Boolean(tx.is_financial && amount > 0),\n      whatsapp_number: whatsappNumber,\n      Month: month,\n      Date: date,\n      Type: type,\n      Category: category,\n      Vendor: vendor,\n      Product: product,\n      Amount: amount,\n      Currency: currency,\n      currency_symbol: currencySymbol,\n      duplicate_key: duplicateKey,\n      source: 'email',\n      from_email: emailData.from?.value?.[0]?.address || emailData.from?.text || 'saurabh7596@gmail.com',\n      email_subject: emailData.subject || '',\n      thread_id: emailId\n    }\n  };\n});"
+        "jsCode": "const allInputs = $input.all();\nconst emailDetails = $('Get Email Details').all();\n\nreturn allInputs.map((inputItem, index) => {\n  const input = inputItem.json;\n  let raw = input.output || input.text || input.content || '';\n\n  raw = String(raw)\n    .replace(/```json/g, '')\n    .replace(/```/g, '')\n    .trim();\n\n  const match = raw.match(/\\{[\\s\\S]*\\}/);\n  const jsonString = match ? match[0] : raw;\n\n  let tx = {};\n  try {\n    tx = JSON.parse(jsonString);\n  } catch (e) {\n    tx = { is_financial: false };\n  }\n\n  const emailData = emailDetails[index]?.json || {};\n  \n  let date = String(tx.Date || new Date().toISOString().slice(0, 10)).trim();\n  if (date.startsWith('2023') || date.startsWith('2024') || date.startsWith('2025') || date.includes('Thu') || date.includes('Wed') || date.length < 10) {\n    date = new Date().toISOString().slice(0, 10);\n  }\n  const month = date.slice(0, 7);\n\n  let type = 'expense';\n  const rawType = String(tx.Type || 'expense').toLowerCase().trim();\n  if (['income', 'credit', 'salary', 'deposit'].some(k => rawType.includes(k))) {\n    type = 'income';\n  } else if (rawType.includes('transfer')) {\n    type = 'transfer';\n  } else if (['investment', 'invest', 'gold', 'stocks', 'mutual'].some(k => rawType.includes(k))) {\n    type = 'investment';\n  } else {\n    type = 'expense';\n  }\n\n  const category = tx.Category || 'Other';\n  const vendor = tx.Vendor || 'N/A';\n  const product = tx.Product || vendor;\n  const amount = Number(tx.Amount ?? 0);\n  const currency = tx.Currency || 'INR';\n  const currencySymbol = tx.currency_symbol || '\u20b9';\n  const whatsappNumber = '1104381256';\n  const emailId = emailData.id || emailData.threadId || '';\n\n  const duplicateKey = `${whatsappNumber}|${date}|${type}|${category.toLowerCase()}|${vendor.toLowerCase()}|${amount}`;\n\n  return {\n    json: {\n      is_financial: Boolean(tx.is_financial && amount > 0),\n      whatsapp_number: whatsappNumber,\n      Month: month,\n      Date: date,\n      Type: type,\n      Category: category,\n      Vendor: vendor,\n      Product: product,\n      Amount: amount,\n      Currency: currency,\n      currency_symbol: currencySymbol,\n      duplicate_key: duplicateKey,\n      source: 'email',\n      from_email: emailData.from?.value?.[0]?.address || emailData.from?.text || 'saurabh7596@gmail.com',\n      email_subject: emailData.subject || '',\n      thread_id: emailId\n    }\n  };\n});"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -182,6 +169,59 @@
     },
     {
       "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id FROM transactions WHERE duplicate_key = '{{ $json.duplicate_key }}' LIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1080,
+        0
+      ],
+      "id": "71fa3201-c812-4091-8723-9f12019a3b90",
+      "name": "Check Duplicate in DB",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "3CkgnmURS96JgSlU",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1300,
+        0
+      ],
+      "id": "4218ba90-5021-4f12-a110-82bb0102aa11",
+      "name": "Is New Transaction?"
+    },
+    {
+      "parameters": {
         "resource": "database",
         "operation": "insert",
         "schema": {
@@ -198,20 +238,20 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "whatsapp_number": "={{ $json.whatsapp_number }}",
-            "transaction_date": "={{ $json.Date }}",
-            "type": "={{ $json.Type }}",
-            "category": "={{ $json.Category }}",
-            "vendor": "={{ $json.Vendor }}",
+            "whatsapp_number": "={{ $('Format Email Transaction').item.json.whatsapp_number }}",
+            "transaction_date": "={{ $('Format Email Transaction').item.json.Date }}",
+            "type": "={{ $('Format Email Transaction').item.json.Type }}",
+            "category": "={{ $('Format Email Transaction').item.json.Category }}",
+            "vendor": "={{ $('Format Email Transaction').item.json.Vendor }}",
             "platform": "email",
-            "product": "={{ $json.Product }}",
-            "amount": "={{ $json.Amount }}",
-            "currency": "={{ $json.Currency }}",
-            "currency_symbol": "={{ $json.currency_symbol }}",
+            "product": "={{ $('Format Email Transaction').item.json.Product }}",
+            "amount": "={{ $('Format Email Transaction').item.json.Amount }}",
+            "currency": "={{ $('Format Email Transaction').item.json.Currency }}",
+            "currency_symbol": "={{ $('Format Email Transaction').item.json.currency_symbol }}",
             "source": "email",
-            "notes": "={{ 'Auto-ingested from: ' + $json.from_email }}",
-            "duplicate_key": "={{ $json.duplicate_key }}",
-            "raw_data": "={{ JSON.stringify($json) }}"
+            "notes": "={{ 'Auto-ingested from: ' + $('Format Email Transaction').item.json.from_email }}",
+            "duplicate_key": "={{ $('Format Email Transaction').item.json.duplicate_key }}",
+            "raw_data": "={{ JSON.stringify($('Format Email Transaction').item.json) }}"
           },
           "matchingColumns": [
             "id"
@@ -222,8 +262,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1080,
-        0
+        1520,
+        -100
       ],
       "id": "893c5fb2-b7e1-4560-9118-ff352618ac89",
       "name": "Insert Email Transaction (Postgres)",
@@ -237,7 +277,7 @@
     {
       "parameters": {
         "chatId": "1104381256",
-        "text": "={{ \n  (() => {\n    const d = $json;\n    const tDate = String(d.transaction_date || d.Date || '').slice(0, 10);\n    const tType = String(d.type || d.Type || 'expense').toUpperCase();\n    const tCategory = d.category || d.Category || 'Other';\n    const tVendor = d.vendor || d.Vendor || 'N/A';\n    const tProduct = d.product || d.Product || tVendor;\n    const tAmount = Number(d.amount ?? d.Amount ?? 0);\n    const tCurrSym = d.currency_symbol || '\u20b9';\n    const tFrom = d.notes ? d.notes.replace('Auto-ingested from: ', '') : (d.from_email || 'saurabh7596@gmail.com');\n\n    const typeBadge = tType === 'INCOME' ? '\ud83d\udfe2 *Email Income Auto-Logged!*' : '\ud83d\udcec *Email Expense Auto-Logged!*';\n\n    return `${typeBadge}\\n\\n\ud83d\udcc5 Date: ${tDate}\\n\ud83d\udcc1 Type: ${tType}\\n\ud83c\udff7\ufe0f Category: ${tCategory}\\n\ud83c\udfea Vendor: ${tVendor}\\n\ud83d\udecd\ufe0f Product: ${tProduct}\\n\ud83d\udcb0 Amount: ${tCurrSym}${tAmount.toLocaleString('en-IN')}\\n\ud83d\udce7 From: ${tFrom}\\n\\n\ud83d\udca1 Saved directly to your Supabase ledger.`;\n  })()\n}}",
+        "text": "={{ \n  (() => {\n    const d = $('Format Email Transaction').item.json;\n    const tDate = String(d.Date || '').slice(0, 10);\n    const tType = String(d.Type || 'expense').toUpperCase();\n    const tCategory = d.Category || 'Other';\n    const tVendor = d.Vendor || 'N/A';\n    const tProduct = d.Product || tVendor;\n    const tAmount = Number(d.Amount ?? 0);\n    const tCurrSym = d.currency_symbol || '\u20b9';\n    const tFrom = d.from_email || 'saurabh7596@gmail.com';\n\n    const typeBadge = tType === 'INCOME' ? '\ud83d\udfe2 *Email Income Auto-Logged!*' : '\ud83d\udcec *Email Expense Auto-Logged!*';\n\n    return `${typeBadge}\\n\\n\ud83d\udcc5 Date: ${tDate}\\n\ud83d\udcc1 Type: ${tType}\\n\ud83c\udff7\ufe0f Category: ${tCategory}\\n\ud83c\udfea Vendor: ${tVendor}\\n\ud83d\udecd\ufe0f Product: ${tProduct}\\n\ud83d\udcb0 Amount: ${tCurrSym}${tAmount.toLocaleString('en-IN')}\\n\ud83d\udce7 From: ${tFrom}\\n\\n\ud83d\udca1 Saved directly to your Supabase ledger.`;\n  })()\n}}",
         "additionalFields": {
           "appendAttribution": false
         }
@@ -245,8 +285,8 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1320,
-        0
+        1740,
+        -100
       ],
       "id": "7820bbda-c38d-4e9b-89bc-992384a6c810",
       "name": "Telegram Email Alert",
@@ -255,9 +295,7 @@
           "id": "Nr93W3lWAP7ZIu1n",
           "name": "Personal Finance Tracker_API"
         }
-      },
-      "webhookId": "60c29e3d-5e66-40ef-9f85-473514a80685",
-      "continueOnFail": true
+      }
     },
     {
       "parameters": {
@@ -267,22 +305,43 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        1560,
-        100
+        1960,
+        0
       ],
       "id": "6bd3730a-641f-4a65-a93f-19ae6a530921",
       "name": "Mark Message As Read",
+      "continueOnFail": true,
       "credentials": {
         "gmailOAuth2": {
           "id": "58sdu9EACCnBXwex",
           "name": "Telegram_Scheduling Gmail OAuth2 API"
         }
-      },
-      "webhookId": "3f273c12-017b-4b19-ae19-e2b8a91389cb",
-      "continueOnFail": true
+      }
     }
   ],
   "connections": {
+    "Schedule Trigger (Every 5 mins)": {
+      "main": [
+        [
+          {
+            "node": "Get Financial Emails (2-Day Window)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Financial Emails (2-Day Window)": {
+      "main": [
+        [
+          {
+            "node": "Get Email Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Get Email Details": {
       "main": [
         [
@@ -331,6 +390,35 @@
       "main": [
         [
           {
+            "node": "Check Duplicate in DB",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Message As Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Duplicate in DB": {
+      "main": [
+        [
+          {
+            "node": "Is New Transaction?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is New Transaction?": {
+      "main": [
+        [
+          {
             "node": "Insert Email Transaction (Postgres)",
             "type": "main",
             "index": 0
@@ -366,506 +454,9 @@
           }
         ]
       ]
-    },
-    "Schedule Trigger (Every 5 mins)": {
-      "main": [
-        [
-          {
-            "node": "Get Financial Emails (Recent)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Financial Emails (Recent)": {
-      "main": [
-        [
-          {
-            "node": "Get Email Details",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
     }
   },
-  "nodeGroups": [],
   "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate",
-    "timeSavedMode": "fixed",
-    "callerPolicy": "workflowsFromSameOwner",
-    "availableInMCP": true
-  },
-  "staticData": {
-    "node:Schedule Trigger": {
-      "recurrenceRules": []
-    },
-    "node:Schedule Trigger (Every 5 mins)": {
-      "recurrenceRules": [
-        null
-      ],
-      "recurrenceRuleSignatures": [
-        null
-      ]
-    },
-    "node:Schedule Trigger (Every 2 mins)": {
-      "recurrenceRules": [
-        null
-      ],
-      "recurrenceRuleSignatures": [
-        null
-      ]
-    },
-    "node:Schedule Trigger (Daily at 8:00 AM)": {
-      "recurrenceRules": [
-        null
-      ],
-      "recurrenceRuleSignatures": [
-        null
-      ]
-    }
-  },
-  "pinData": {},
-  "meta": {
-    "templateCredsSetupCompleted": true
-  },
-  "tags": [],
-  "shared": [
-    {
-      "role": "workflow:owner",
-      "workflowId": "MhRwXY6ONsO75M6M",
-      "projectId": "L1LVLURBWjEjzktT",
-      "project": {
-        "id": "L1LVLURBWjEjzktT",
-        "name": "Saurabh   <saurabh.automation.ai@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "customTelemetryTags": [],
-        "creatorId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-03-05T06:22:55.368Z",
-        "updatedAt": "2026-03-05T06:23:00.850Z"
-      },
-      "createdAt": "2026-04-04T16:01:47.983Z",
-      "updatedAt": "2026-04-04T16:01:47.983Z"
-    }
-  ],
-  "activeVersion": {
-    "versionId": "4dd5431f-630f-451c-841e-355b598526b8",
-    "workflowId": "MhRwXY6ONsO75M6M",
-    "nodes": [
-      {
-        "parameters": {
-          "rule": {
-            "interval": [
-              {
-                "field": "minutes",
-                "minutesInterval": 5
-              }
-            ]
-          }
-        },
-        "type": "n8n-nodes-base.scheduleTrigger",
-        "typeVersion": 1.2,
-        "position": [
-          -300,
-          100
-        ],
-        "id": "e9ff6663-79d1-4171-88fc-ef67b7e64032",
-        "name": "Schedule Trigger (Every 5 mins)"
-      },
-      {
-        "parameters": {
-          "operation": "getAll",
-          "limit": 25,
-          "simple": false,
-          "filters": {
-            "q": "from:(hdfcbank OR icicibank OR sbi OR axisbank OR paytm OR razorpay OR swiggy OR zomato OR amazon OR apple OR google OR netflix OR spotify OR anthropic OR paddle OR github OR openai) OR subject:(debited OR credited OR \"UPI txn\" OR InstaAlerts OR statement OR invoice OR receipt OR \"spent on\")"
-          },
-          "options": {}
-        },
-        "type": "n8n-nodes-base.gmail",
-        "typeVersion": 2.2,
-        "position": [
-          -80,
-          100
-        ],
-        "id": "33c66a31-bdfc-4cf8-a979-3d07a164b38f",
-        "name": "Get Financial Emails (Recent)",
-        "credentials": {
-          "gmailOAuth2": {
-            "id": "58sdu9EACCnBXwex",
-            "name": "Telegram_Scheduling Gmail OAuth2 API"
-          }
-        },
-        "webhookId": "12d31011-9d53-49c2-978b-807a1f3af124"
-      },
-      {
-        "parameters": {
-          "operation": "get",
-          "messageId": "={{ $json.id || $json.threadId }}",
-          "simple": false,
-          "options": {
-            "downloadAttachments": false
-          }
-        },
-        "type": "n8n-nodes-base.gmail",
-        "typeVersion": 2.2,
-        "position": [
-          140,
-          100
-        ],
-        "id": "673f40f0-c52a-4ce2-b2f5-b3e1b7145719",
-        "name": "Get Email Details",
-        "credentials": {
-          "gmailOAuth2": {
-            "id": "58sdu9EACCnBXwex",
-            "name": "Telegram_Scheduling Gmail OAuth2 API"
-          }
-        },
-        "webhookId": "dec977a3-f141-4d2a-b016-9104a4117453"
-      },
-      {
-        "parameters": {
-          "promptType": "define",
-          "text": "={{ 'From: ' + ($json.from?.value?.[0]?.address || $json.from?.text || '') + '\\nSubject: ' + ($json.subject || '') + '\\nSnippet: ' + ($json.snippet || '') + '\\nBody: ' + ($json.text || $json.snippet || '') }}",
-          "options": {
-            "systemMessage": "=You are a precision financial transaction and subscription extractor for an automated accounting and CFO agent.\n\nAnalyze the email subject, sender, and text body.\nExtract financial transaction and recurring subscription details.\n\nSubscription Categories to explicitly recognize under \"Subscription\":\n- Video Streaming: Netflix, Amazon Prime Video, Disney+, Hotstar, YouTube Premium, Hulu, Max, SonyLIV, Zee5, JioCinema\n- Music & Audio: Spotify, Apple Music, Audible, YouTube Music\n- Cloud & Tech: Apple iCloud+, Google One, Microsoft 365, 1Password, Bitwarden, Dropbox, AWS\n- Delivery & Memberships: Amazon Prime, Swiggy One, Zomato Gold, Zepto Pass, Blinkit, Uber One\n- Fitness & Wellness: Cult.fit, Gym memberships, ClassPass, Strava, Headspace, Calm\n- Gaming & Creative: Xbox Game Pass, PlayStation Plus, Adobe Creative Cloud, Figma, Canva\n- AI & SaaS Tools: ChatGPT Plus, Claude Pro, n8n Cloud, GitHub Copilot, Midjourney, Cursor\n\nReturn ONLY a JSON object (no markdown, no backticks, no code block) with these exact keys:\n{\n  \"Date\": \"YYYY-MM-DD\" (transaction date, fallback to current date if missing),\n  \"Type\": \"expense\" or \"income\",\n  \"Category\": \"Subscription\" | \"Food\" | \"Groceries\" | \"Transport\" | \"Shopping\" | \"Bills\" | \"Investment\" | \"Salary\" | \"Bank Charges\" | \"Other\",\n  \"Vendor\": \"Merchant/Bank/Receiver/Service name (e.g. Netflix, Spotify, Swiggy One, Google One, Anthropic, Paddle, HDFC Bank)\",\n  \"Product\": \"Short product/item/plan name (e.g. Premium Plan, Monthly Subscription, UPI Payment, Delivery Membership)\",\n  \"Amount\": 123.45 (numeric amount without currency symbols),\n  \"Currency\": \"INR\" | \"USD\" | \"EUR\" | \"GBP\",\n  \"currency_symbol\": \"\u20b9\" | \"$\" | \"\u20ac\" | \"\u00a3\",\n  \"is_financial\": true (false if promotional marketing, otp, or newsletter without money transaction)\n}"
-          }
-        },
-        "type": "@n8n/n8n-nodes-langchain.agent",
-        "typeVersion": 3.1,
-        "position": [
-          380,
-          100
-        ],
-        "id": "4a9cd68d-ae9b-49e5-9e75-448dd45281d8",
-        "name": "AI Email Parser"
-      },
-      {
-        "parameters": {
-          "model": {
-            "__rl": true,
-            "value": "gpt-4o-mini",
-            "mode": "list",
-            "cachedResultName": "gpt-4o-mini"
-          },
-          "builtInTools": {},
-          "options": {
-            "temperature": 0.1
-          }
-        },
-        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-        "typeVersion": 1.3,
-        "position": [
-          380,
-          300
-        ],
-        "id": "53fb71ae-330b-4e3c-9102-696ca178b800",
-        "name": "OpenAI Model",
-        "credentials": {
-          "openAiApi": {
-            "id": "EcmVOJevkH9JnGeq",
-            "name": "OpenAi Feedback"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "jsCode": "const allInputs = $input.all();\nconst emailDetails = $('Get Email Details').all();\n\nreturn allInputs.map((inputItem, index) => {\n  const input = inputItem.json;\n  let raw = input.output || input.text || input.content || '';\n\n  raw = String(raw)\n    .replace(/```json/g, '')\n    .replace(/```/g, '')\n    .trim();\n\n  const match = raw.match(/\\{[\\s\\S]*\\}/);\n  const jsonString = match ? match[0] : raw;\n\n  let tx = {};\n  try {\n    tx = JSON.parse(jsonString);\n  } catch (e) {\n    tx = { is_financial: false };\n  }\n\n  const emailData = emailDetails[index]?.json || {};\n  const date = String(tx.Date || new Date().toISOString().slice(0, 10)).trim();\n  const month = date.slice(0, 7);\n\n  let type = 'expense';\n  const rawType = String(tx.Type || 'expense').toLowerCase().trim();\n  if (['income', 'credit', 'salary', 'deposit'].some(k => rawType.includes(k))) {\n    type = 'income';\n  } else if (rawType.includes('transfer')) {\n    type = 'transfer';\n  } else if (['investment', 'invest', 'gold', 'stocks', 'mutual'].some(k => rawType.includes(k))) {\n    type = 'investment';\n  } else {\n    type = 'expense';\n  }\n\n  const category = tx.Category || 'Other';\n  const vendor = tx.Vendor || 'N/A';\n  const product = tx.Product || vendor;\n  const amount = Number(tx.Amount ?? 0);\n  const currency = tx.Currency || 'INR';\n  const currencySymbol = tx.currency_symbol || '\u20b9';\n  const whatsappNumber = '1104381256';\n  const emailId = emailData.id || emailData.threadId || '';\n\n  const duplicateKey = `${whatsappNumber}|${date}|${type}|${category.toLowerCase()}|${vendor.toLowerCase()}|${amount}`;\n\n  return {\n    json: {\n      is_financial: Boolean(tx.is_financial && amount > 0),\n      whatsapp_number: whatsappNumber,\n      Month: month,\n      Date: date,\n      Type: type,\n      Category: category,\n      Vendor: vendor,\n      Product: product,\n      Amount: amount,\n      Currency: currency,\n      currency_symbol: currencySymbol,\n      duplicate_key: duplicateKey,\n      source: 'email',\n      from_email: emailData.from?.value?.[0]?.address || emailData.from?.text || 'saurabh7596@gmail.com',\n      email_subject: emailData.subject || '',\n      thread_id: emailId\n    }\n  };\n});"
-        },
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          620,
-          100
-        ],
-        "id": "e4a8b792-7471-460d-8526-11b333918a22",
-        "name": "Format Email Transaction"
-      },
-      {
-        "parameters": {
-          "conditions": {
-            "options": {
-              "caseSensitive": true,
-              "leftValue": "",
-              "typeValidation": "loose",
-              "version": 1
-            },
-            "conditions": [
-              {
-                "leftValue": "={{ $json.is_financial }}",
-                "rightValue": true,
-                "operator": {
-                  "type": "boolean",
-                  "operation": "equals"
-                }
-              },
-              {
-                "leftValue": "={{ $json.Amount }}",
-                "rightValue": 0,
-                "operator": {
-                  "type": "number",
-                  "operation": "gt"
-                }
-              }
-            ],
-            "combinator": "and"
-          }
-        },
-        "type": "n8n-nodes-base.if",
-        "typeVersion": 2.2,
-        "position": [
-          840,
-          100
-        ],
-        "id": "f51276a1-9a74-4b5b-9d41-c7d5ef0a9271",
-        "name": "Is Financial Transaction?"
-      },
-      {
-        "parameters": {
-          "resource": "database",
-          "operation": "insert",
-          "schema": {
-            "__rl": true,
-            "value": "public",
-            "mode": "list"
-          },
-          "table": {
-            "__rl": true,
-            "value": "transactions",
-            "mode": "list",
-            "cachedResultName": "transactions"
-          },
-          "columns": {
-            "mappingMode": "defineBelow",
-            "value": {
-              "whatsapp_number": "={{ $json.whatsapp_number }}",
-              "transaction_date": "={{ $json.Date }}",
-              "type": "={{ $json.Type }}",
-              "category": "={{ $json.Category }}",
-              "vendor": "={{ $json.Vendor }}",
-              "platform": "email",
-              "product": "={{ $json.Product }}",
-              "amount": "={{ $json.Amount }}",
-              "currency": "={{ $json.Currency }}",
-              "currency_symbol": "={{ $json.currency_symbol }}",
-              "source": "email",
-              "notes": "={{ 'Auto-ingested from: ' + $json.from_email }}",
-              "duplicate_key": "={{ $json.duplicate_key }}",
-              "raw_data": "={{ JSON.stringify($json) }}"
-            },
-            "matchingColumns": [
-              "id"
-            ]
-          },
-          "options": {}
-        },
-        "type": "n8n-nodes-base.postgres",
-        "typeVersion": 2.6,
-        "position": [
-          1080,
-          0
-        ],
-        "id": "893c5fb2-b7e1-4560-9118-ff352618ac89",
-        "name": "Insert Email Transaction (Postgres)",
-        "credentials": {
-          "postgres": {
-            "id": "3CkgnmURS96JgSlU",
-            "name": "Postgres account"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "chatId": "1104381256",
-          "text": "={{ \n  (() => {\n    const d = $json;\n    const tDate = String(d.transaction_date || d.Date || '').slice(0, 10);\n    const tType = String(d.type || d.Type || 'expense').toUpperCase();\n    const tCategory = d.category || d.Category || 'Other';\n    const tVendor = d.vendor || d.Vendor || 'N/A';\n    const tProduct = d.product || d.Product || tVendor;\n    const tAmount = Number(d.amount ?? d.Amount ?? 0);\n    const tCurrSym = d.currency_symbol || '\u20b9';\n    const tFrom = d.notes ? d.notes.replace('Auto-ingested from: ', '') : (d.from_email || 'saurabh7596@gmail.com');\n\n    const typeBadge = tType === 'INCOME' ? '\ud83d\udfe2 *Email Income Auto-Logged!*' : '\ud83d\udcec *Email Expense Auto-Logged!*';\n\n    return `${typeBadge}\\n\\n\ud83d\udcc5 Date: ${tDate}\\n\ud83d\udcc1 Type: ${tType}\\n\ud83c\udff7\ufe0f Category: ${tCategory}\\n\ud83c\udfea Vendor: ${tVendor}\\n\ud83d\udecd\ufe0f Product: ${tProduct}\\n\ud83d\udcb0 Amount: ${tCurrSym}${tAmount.toLocaleString('en-IN')}\\n\ud83d\udce7 From: ${tFrom}\\n\\n\ud83d\udca1 Saved directly to your Supabase ledger.`;\n  })()\n}}",
-          "additionalFields": {
-            "appendAttribution": false
-          }
-        },
-        "type": "n8n-nodes-base.telegram",
-        "typeVersion": 1.2,
-        "position": [
-          1320,
-          0
-        ],
-        "id": "7820bbda-c38d-4e9b-89bc-992384a6c810",
-        "name": "Telegram Email Alert",
-        "credentials": {
-          "telegramApi": {
-            "id": "Nr93W3lWAP7ZIu1n",
-            "name": "Personal Finance Tracker_API"
-          }
-        },
-        "webhookId": "60c29e3d-5e66-40ef-9f85-473514a80685",
-        "continueOnFail": true
-      },
-      {
-        "parameters": {
-          "operation": "markAsRead",
-          "messageId": "={{ $('Get Email Details').item.json.id || $('Get Email Details').item.json.threadId }}"
-        },
-        "type": "n8n-nodes-base.gmail",
-        "typeVersion": 2.2,
-        "position": [
-          1560,
-          100
-        ],
-        "id": "6bd3730a-641f-4a65-a93f-19ae6a530921",
-        "name": "Mark Message As Read",
-        "credentials": {
-          "gmailOAuth2": {
-            "id": "58sdu9EACCnBXwex",
-            "name": "Telegram_Scheduling Gmail OAuth2 API"
-          }
-        },
-        "webhookId": "3f273c12-017b-4b19-ae19-e2b8a91389cb",
-        "continueOnFail": true
-      }
-    ],
-    "connections": {
-      "Get Email Details": {
-        "main": [
-          [
-            {
-              "node": "AI Email Parser",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "OpenAI Model": {
-        "ai_languageModel": [
-          [
-            {
-              "node": "AI Email Parser",
-              "type": "ai_languageModel",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "AI Email Parser": {
-        "main": [
-          [
-            {
-              "node": "Format Email Transaction",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Format Email Transaction": {
-        "main": [
-          [
-            {
-              "node": "Is Financial Transaction?",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Is Financial Transaction?": {
-        "main": [
-          [
-            {
-              "node": "Insert Email Transaction (Postgres)",
-              "type": "main",
-              "index": 0
-            }
-          ],
-          [
-            {
-              "node": "Mark Message As Read",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Insert Email Transaction (Postgres)": {
-        "main": [
-          [
-            {
-              "node": "Telegram Email Alert",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Telegram Email Alert": {
-        "main": [
-          [
-            {
-              "node": "Mark Message As Read",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Schedule Trigger (Every 5 mins)": {
-        "main": [
-          [
-            {
-              "node": "Get Financial Emails (Recent)",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Get Financial Emails (Recent)": {
-        "main": [
-          [
-            {
-              "node": "Get Email Details",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      }
-    },
-    "nodeGroups": [],
-    "authors": "Saurabh  ",
-    "name": null,
-    "description": null,
-    "autosaved": false,
-    "createdAt": "2026-08-24T09:46:24.889Z",
-    "updatedAt": "2026-08-24T09:46:24.889Z",
-    "workflowPublishHistory": [
-      {
-        "id": 264,
-        "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "4dd5431f-630f-451c-841e-355b598526b8",
-        "event": "activated",
-        "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-24T09:46:25.027Z"
-      },
-      {
-        "id": 266,
-        "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "4dd5431f-630f-451c-841e-355b598526b8",
-        "event": "activated",
-        "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-24T09:46:27.034Z"
-      },
-      {
-        "id": 265,
-        "workflowId": "MhRwXY6ONsO75M6M",
-        "versionId": "4dd5431f-630f-451c-841e-355b598526b8",
-        "event": "deactivated",
-        "userId": "3afddf34-c973-4117-ac56-6949c088b352",
-        "createdAt": "2026-08-24T09:46:26.013Z"
-      }
-    ]
+    "executionOrder": "v1"
   }
 }
