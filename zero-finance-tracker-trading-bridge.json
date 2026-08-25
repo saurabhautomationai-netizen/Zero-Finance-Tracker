@@ -1,5 +1,16 @@
 {
+  "id": "dsRYH4rrj0YkHVit",
   "name": "Zero Finance Tracker - Trading P&L Bridge",
+  "description": null,
+  "active": true,
+  "activeVersionId": "2a1f5108-5885-49dd-a243-953a14f55518",
+  "createdAt": "2026-08-23T13:32:33.306Z",
+  "updatedAt": "2026-08-23T13:32:33.306Z",
+  "isArchived": false,
+  "versionId": "2a1f5108-5885-49dd-a243-953a14f55518",
+  "versionCounter": 1,
+  "sourceWorkflowId": null,
+  "triggerCount": 1,
   "nodes": [
     {
       "parameters": {
@@ -20,7 +31,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json.body || $input.first().json;\n\nconst symbol = String(input.symbol || input.ticker || 'MARKET').toUpperCase();\nconst action = String(input.action || input.side || 'TRADE').toUpperCase();\nconst broker = String(input.broker || input.exchange || 'Trading Bot').trim();\nconst tradeId = String(input.trade_id || input.order_id || Date.now());\nconst rawPnl = Number(input.pnl ?? input.profit ?? input.amount ?? 0);\nconst date = String(input.date || new Date().toISOString().slice(0, 10)).trim();\nconst month = date.slice(0, 7);\nconst notes = String(input.notes || `${symbol} ${action} trade via ${broker}`).trim();\nconst whatsappNumber = String(input.whatsapp_number || '1104381256');\nconst currency = String(input.currency || 'INR').toUpperCase();\nconst currencySymbol = currency === 'USD' ? '$' : (currency === 'EUR' ? '\u20ac' : '\u20b9');\n\nconst isProfit = rawPnl >= 0;\nconst absAmount = Math.abs(rawPnl);\nconst type = isProfit ? 'income' : 'expense';\nconst category = isProfit ? 'Trading Profit' : 'Trading Loss';\nconst product = `${symbol} (${action})`;\n\nconst duplicateKey = `${whatsappNumber}|${date}|trade|${tradeId}|${absAmount}`;\n\nreturn [{\n  json: {\n    trade_id: tradeId,\n    symbol,\n    action,\n    broker,\n    pnl: rawPnl,\n    is_profit: isProfit,\n    whatsapp_number: whatsappNumber,\n    Month: month,\n    Date: date,\n    Type: type,\n    Category: category,\n    Vendor: broker,\n    Product: product,\n    Amount: absAmount,\n    Currency: currency,\n    currency_symbol: currencySymbol,\n    notes,\n    duplicate_key: duplicateKey,\n    source: 'trading_bot',\n    raw_data: JSON.stringify(input)\n  }\n}];"
+        "jsCode": "const headerAuth = $input.first().json.headers?.['x-webhook-secret'] || $input.first().json.headers?.authorization || '';\nconst body = $input.first().json.body || $input.first().json;\nconst secretKey = String(body.secret_key || headerAuth || '').replace('Bearer ', '').trim();\n\n// SECURITY CHECK: Production Webhook Authentication\nconst EXPECTED_SECRET = 'ZERO_PROD_SECRET_8921_SECURE';\nif (secretKey && secretKey !== EXPECTED_SECRET && secretKey !== 'Bearer ' + EXPECTED_SECRET) {\n  throw new Error('401 Unauthorized: Invalid Webhook Secret Key. Access Denied.');\n}\n\nconst symbol = String(body.symbol || body.ticker || 'MARKET').toUpperCase();\nconst action = String(body.action || body.side || 'TRADE').toUpperCase();\nconst broker = String(body.broker || body.exchange || 'Trading Bot').trim();\nconst tradeId = String(body.trade_id || body.order_id || Date.now());\nconst rawPnl = Number(body.pnl ?? body.profit ?? body.amount ?? 0);\nconst date = String(body.date || new Date().toISOString().slice(0, 10)).trim();\nconst month = date.slice(0, 7);\nconst notes = String(body.notes || `${symbol} ${action} trade via ${broker}`).trim();\nconst whatsappNumber = String(body.whatsapp_number || '1104381256');\nconst currency = String(body.currency || 'INR').toUpperCase();\nconst currencySymbol = currency === 'USD' ? '$' : (currency === 'EUR' ? '\u20ac' : '\u20b9');\n\nconst isProfit = rawPnl >= 0;\nconst absAmount = Math.abs(rawPnl);\nconst type = isProfit ? 'income' : 'expense';\nconst category = isProfit ? 'Trading Profit' : 'Trading Loss';\nconst product = `${symbol} (${action})`;\n\nconst duplicateKey = `${whatsappNumber}|${date}|trade|${tradeId}|${absAmount}`;\n\nreturn [{\n  json: {\n    trade_id: tradeId,\n    symbol,\n    action,\n    broker,\n    pnl: rawPnl,\n    is_profit: isProfit,\n    whatsapp_number: whatsappNumber,\n    Month: month,\n    Date: date,\n    Type: type,\n    Category: category,\n    Vendor: broker,\n    Product: product,\n    Amount: absAmount,\n    Currency: currency,\n    currency_symbol: currencySymbol,\n    notes,\n    duplicate_key: duplicateKey,\n    source: 'trading_bot',\n    raw_data: JSON.stringify({ symbol, action, pnl: rawPnl, broker, date })\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -106,7 +117,8 @@
           "id": "Nr93W3lWAP7ZIu1n",
           "name": "Personal Finance Tracker_API"
         }
-      }
+      },
+      "webhookId": "764cc893-432e-4891-963f-5266eac3072d"
     },
     {
       "parameters": {
@@ -170,7 +182,224 @@
       ]
     }
   },
+  "nodeGroups": [],
   "settings": {
     "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": null,
+  "meta": null,
+  "tags": [],
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "dsRYH4rrj0YkHVit",
+      "projectId": "L1LVLURBWjEjzktT",
+      "project": {
+        "id": "L1LVLURBWjEjzktT",
+        "name": "Saurabh   <saurabh.automation.ai@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "3afddf34-c973-4117-ac56-6949c088b352",
+        "createdAt": "2026-03-05T06:22:55.368Z",
+        "updatedAt": "2026-03-05T06:23:00.850Z"
+      },
+      "createdAt": "2026-08-23T13:32:33.308Z",
+      "updatedAt": "2026-08-23T13:32:33.308Z"
+    }
+  ],
+  "activeVersion": {
+    "versionId": "2a1f5108-5885-49dd-a243-953a14f55518",
+    "workflowId": "dsRYH4rrj0YkHVit",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "trade-pnl",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          -300,
+          100
+        ],
+        "id": "e89b4f12-0543-4ce2-bdf9-0a4e7e600101",
+        "name": "Trading Bot Webhook",
+        "webhookId": "trade-pnl"
+      },
+      {
+        "parameters": {
+          "jsCode": "const input = $input.first().json.body || $input.first().json;\n\nconst symbol = String(input.symbol || input.ticker || 'MARKET').toUpperCase();\nconst action = String(input.action || input.side || 'TRADE').toUpperCase();\nconst broker = String(input.broker || input.exchange || 'Trading Bot').trim();\nconst tradeId = String(input.trade_id || input.order_id || Date.now());\nconst rawPnl = Number(input.pnl ?? input.profit ?? input.amount ?? 0);\nconst date = String(input.date || new Date().toISOString().slice(0, 10)).trim();\nconst month = date.slice(0, 7);\nconst notes = String(input.notes || `${symbol} ${action} trade via ${broker}`).trim();\nconst whatsappNumber = String(input.whatsapp_number || '1104381256');\nconst currency = String(input.currency || 'INR').toUpperCase();\nconst currencySymbol = currency === 'USD' ? '$' : (currency === 'EUR' ? '\u20ac' : '\u20b9');\n\nconst isProfit = rawPnl >= 0;\nconst absAmount = Math.abs(rawPnl);\nconst type = isProfit ? 'income' : 'expense';\nconst category = isProfit ? 'Trading Profit' : 'Trading Loss';\nconst product = `${symbol} (${action})`;\n\nconst duplicateKey = `${whatsappNumber}|${date}|trade|${tradeId}|${absAmount}`;\n\nreturn [{\n  json: {\n    trade_id: tradeId,\n    symbol,\n    action,\n    broker,\n    pnl: rawPnl,\n    is_profit: isProfit,\n    whatsapp_number: whatsappNumber,\n    Month: month,\n    Date: date,\n    Type: type,\n    Category: category,\n    Vendor: broker,\n    Product: product,\n    Amount: absAmount,\n    Currency: currency,\n    currency_symbol: currencySymbol,\n    notes,\n    duplicate_key: duplicateKey,\n    source: 'trading_bot',\n    raw_data: JSON.stringify(input)\n  }\n}];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -60,
+          100
+        ],
+        "id": "e4a8b792-7471-460d-8526-11b333918a22",
+        "name": "Format Trade Transaction"
+      },
+      {
+        "parameters": {
+          "resource": "database",
+          "operation": "insert",
+          "schema": {
+            "__rl": true,
+            "value": "public",
+            "mode": "list"
+          },
+          "table": {
+            "__rl": true,
+            "value": "transactions",
+            "mode": "list",
+            "cachedResultName": "transactions"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "whatsapp_number": "={{ $json.whatsapp_number }}",
+              "transaction_date": "={{ $json.Date }}",
+              "type": "={{ $json.Type }}",
+              "category": "={{ $json.Category }}",
+              "vendor": "={{ $json.Vendor }}",
+              "platform": "trading_bot",
+              "product": "={{ $json.Product }}",
+              "amount": "={{ $json.Amount }}",
+              "currency": "={{ $json.Currency }}",
+              "currency_symbol": "={{ $json.currency_symbol }}",
+              "source": "trading_bot",
+              "notes": "={{ $json.notes }}",
+              "duplicate_key": "={{ $json.duplicate_key }}",
+              "raw_data": "={{ $json.raw_data }}"
+            },
+            "matchingColumns": [
+              "id"
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          180,
+          100
+        ],
+        "id": "893c5fb2-b7e1-4560-9118-ff352618ac89",
+        "name": "Insert Trade (Postgres)",
+        "credentials": {
+          "postgres": {
+            "id": "3CkgnmURS96JgSlU",
+            "name": "Postgres account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "chatId": "1104381256",
+          "text": "={{ \n  (() => {\n    const d = $('Format Trade Transaction').first().json;\n    if (d.is_profit) {\n      return `\ud83d\ude80 *Trading Profit Banked!*\\n\\n\ud83d\udcc8 *Symbol*: ${d.symbol} (${d.action})\\n\ud83d\udcb0 *Realized P&L*: +${d.currency_symbol}${d.Amount.toLocaleString('en-IN')}\\n\ud83c\udfe6 *Broker/Exchange*: ${d.broker}\\n\ud83d\udcc5 *Date*: ${d.Date}\\n\ud83d\udcdd *Notes*: ${d.notes}\\n\\n\ud83d\udca1 Automatically credited to your Zero Finance Tracker ledger!`;\n    } else {\n      return `\ud83d\uded1 *Trading Loss Logged*\\n\\n\ud83d\udcc9 *Symbol*: ${d.symbol} (${d.action})\\n\ud83d\udcb8 *Realized P&L*: -${d.currency_symbol}${d.Amount.toLocaleString('en-IN')}\\n\ud83c\udfe6 *Broker/Exchange*: ${d.broker}\\n\ud83d\udcc5 *Date*: ${d.Date}\\n\ud83d\udcdd *Notes*: ${d.notes}\\n\\n\ud83d\udca1 Factored into your monthly risk budget & cash flow.`;\n    }\n  })()\n}}",
+          "additionalFields": {
+            "appendAttribution": false
+          }
+        },
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          420,
+          100
+        ],
+        "id": "7820bbda-c38d-4e9b-89bc-992384a6c810",
+        "name": "Telegram Trade Alert",
+        "credentials": {
+          "telegramApi": {
+            "id": "Nr93W3lWAP7ZIu1n",
+            "name": "Personal Finance Tracker_API"
+          }
+        },
+        "webhookId": "764cc893-432e-4891-963f-5266eac3072d"
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ \n  JSON.stringify({\n    status: \"success\",\n    message: \"Trade P&L successfully logged into Zero Finance Tracker\",\n    trade_id: $('Format Trade Transaction').first().json.trade_id,\n    symbol: $('Format Trade Transaction').first().json.symbol,\n    pnl: $('Format Trade Transaction').first().json.pnl,\n    type: $('Format Trade Transaction').first().json.Type,\n    logged_at: new Date().toISOString()\n  }) \n}}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          660,
+          100
+        ],
+        "id": "6a9e8751-c001-447e-8567-ff89c1b753a0",
+        "name": "Respond to Trading Bot"
+      }
+    ],
+    "connections": {
+      "Trading Bot Webhook": {
+        "main": [
+          [
+            {
+              "node": "Format Trade Transaction",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Trade Transaction": {
+        "main": [
+          [
+            {
+              "node": "Insert Trade (Postgres)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Insert Trade (Postgres)": {
+        "main": [
+          [
+            {
+              "node": "Telegram Trade Alert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telegram Trade Alert": {
+        "main": [
+          [
+            {
+              "node": "Respond to Trading Bot",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "nodeGroups": [],
+    "authors": "Saurabh  ",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "createdAt": "2026-08-23T13:32:33.309Z",
+    "updatedAt": "2026-08-23T13:32:33.309Z",
+    "workflowPublishHistory": [
+      {
+        "id": 258,
+        "workflowId": "dsRYH4rrj0YkHVit",
+        "versionId": "2a1f5108-5885-49dd-a243-953a14f55518",
+        "event": "activated",
+        "userId": "3afddf34-c973-4117-ac56-6949c088b352",
+        "createdAt": "2026-08-23T13:32:35.252Z"
+      }
+    ]
   }
 }
