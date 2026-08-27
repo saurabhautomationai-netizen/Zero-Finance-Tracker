@@ -2843,7 +2843,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO conversation_context (whatsapp_number, context_data, updated_at) VALUES ('{{ $('Normalize WhatsApp Message Code').first().json.from }}', '{{ JSON.stringify($json) }}', NOW()) ON CONFLICT (whatsapp_number) DO UPDATE SET context_data = EXCLUDED.context_data, updated_at = NOW();"
+        "query": "INSERT INTO conversation_context (whatsapp_number, context_data, updated_at) \nVALUES (\n  '{{ $('Normalize WhatsApp Message Code').first().json.from.replace(/[^0-9]/g, '') }}', \n  '{{ JSON.stringify($json).replace(/'/g, \"''\") }}', \n  NOW()\n) \nON CONFLICT (whatsapp_number) \nDO UPDATE SET context_data = EXCLUDED.context_data, updated_at = NOW();"
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -2893,7 +2893,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT NOW();\nSELECT * FROM users;\nSELECT * FROM transactions;",
+        "query": "SELECT NOW();",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
